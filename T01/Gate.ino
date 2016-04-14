@@ -37,13 +37,12 @@ bool codigoCerto(bool C0, bool C1, bool C2, bool C3) {
 
 //Função lógica de saída M
 bool funcaoM(bool I, bool SPTA, bool CC, bool SPTF, bool SPC) {
-  return I & !SPTA | !CC & !SPTF & !SPC & !I | !SPTA & CC & !I | !SPTF & !SPTA & SPC & !I;
-  // I and ~SPTA or ~I and CC and ~SPTA or ~I and ~SPTF and ~CC and ~SPC or ~I and ~SPTF and ~SPTA and SPC
+  return (!I & !CC & !SPC & !SPTA + I & CC & !SPTF  + CC & SPC & !SPTF + !SPTF & !SPTA;);
 }
 
 //Função lógica de saída R
 bool funcaoR(bool I, bool SPTA, bool CC,bool SPTF, bool SPC) {
-  return !SPTA & I | (SPC |(CC & !SPTA)) & !I;
+  return (SPC + I & CC );
 }
 
 //Função de Leitura correspondentes aos sensores de entrada
