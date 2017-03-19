@@ -1,4 +1,8 @@
-# Created by https://www.gitignore.io/api/c
+/Slides
+/Other
+/Exams
+/Others
+
 
 ### C ###
 # Object files
