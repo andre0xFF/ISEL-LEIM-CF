@@ -66,11 +66,11 @@ void calculate() {
     _Y0 = 0;
     _FLAG = 0;
 
-    _Y3 = op_not(not_g1()) | op_div(div_q1()) | op_mult(mult_s3());
-    _Y2 = op_div(div_q0()) | op_mult(mult_s2()) | op_add(add_s2()) | op_not(not_g0());
-    _Y1 = op_div(div_r1()) | op_mult(mult_s1()) | op_add(add_s1()) | op_not(not_h1()) | op_sub(sub_s1()) | op_xor(xor_f1()) | op_or(or_f1()) | op_and(and_f1());
-    _Y0 = op_div(div_r0()) | op_mult(mult_s0()) | op_add(add_s0()) | op_not(not_h0()) | op_sub(sub_s0()) | op_xor(xor_f0()) | op_or(or_f0()) | op_and(and_f0());
-    _FLAG = op_div(div_dz()) | op_sub(sub_n());
+    _Y3 = op_div(div_q1()) | op_mult(mult_s3()) | op_not(not_g1()) | op_sub(sub_s2());
+    _Y2 = op_div(div_q0()) | op_mult(mult_s2()) | op_not(not_g0()) | op_sub(sub_s2()) | op_add(add_s2());
+    _Y1 = op_div(div_r1()) | op_mult(mult_s1()) | op_not(not_h1()) | op_sub(sub_s1()) | op_add(add_s1()) | op_xor(xor_f1()) | op_or(or_f1()) | op_and(and_f1());
+    _Y0 = op_div(div_r0()) | op_mult(mult_s0()) | op_not(not_h0()) | op_sub(sub_s0()) | op_add(add_s0()) | op_xor(xor_f0()) | op_or(or_f0()) | op_and(and_f0());
+    _FLAG = op_div(div_dz());
 }
 
 boolean nand(boolean A, boolean B) { return !(A & B); }
@@ -104,9 +104,18 @@ boolean add_s2() { return _B1 & _A1 | _A0 & _A1 & _B0 | _A0 & _B1 & _B0; }
 boolean add_s1() { return _B1 & !_A0 & !_A1 | _B1 & !_A1 & !_B0 | _A1 & !_B0 & !_B1 | _A1 & !_A0 & !_B1 | _A0 & _B0 & !_B1 & !_A1 | _B1 & _A0 & _B0 & _A1; }
 boolean add_s0() { return _A0 & !_B0 | _B0 & !_A0; }
 
-boolean sub_s1() { return _B1 & !_A1 & !_A0 | _B0 & _B1 & !_A1 | _A1 & _A0 & !_B1 | _A1 & !_B0 & !_B1 | _A1 & _A0 & !_B0; }
-boolean sub_s0() { return _B0 & !_A0 | _A0 & !_A1 & !_B0 | _A0 & !_B1 & !_B0; }
-boolean sub_n() { return _B1 & !_A1 | _B0 & _B1 & !_A0 | _B0 & !_A0 & !_A1; }
+
+// B1 . A1/ + B0 . B1 . A0/ + B0 . A0/ . A1/
+// B1 . A1/ . B0/ +  B1 . A0 . A1/ + B0 . B1 . A1 . A0/ + A1 . B1/ . B0/ + A1 . A0 . B1/ + B0 . A1/ . B1/ . A0/
+// A0 . B0/ + B0 . A0/
+
+boolean sub_s2() { return _B1 & !_A1 | _B0 & _B1 & !_A0 | _B0 & !_A0 & !_A1; }
+boolean sub_s1() { return _B1 & !_A1 & !_B0 | _B1 & _A0 & !_A1 | _B0 & _B1 & _A1 & !_A0 | _A1 & !_B1 & !_B0 | _A1 & _A0 & !_B1 | _B0 & !_A1 & !_B1 & !_A0; }
+boolean sub_s0() { return _A0 & !_B0 | _B0 & !_A0; }
+
+// boolean sub_s1() { return _B1 & !_A1 & !_A0 | _B0 & _B1 & !_A1 | _A1 & _A0 & !_B1 | _A1 & !_B0 & !_B1 | _A1 & _A0 & !_B0; }
+// boolean sub_s0() { return _B0 & !_A0 | _A0 & !_A1 & !_B0 | _A0 & !_B1 & !_B0; }
+// boolean sub_n() { return _B1 & !_A1 | _B0 & _B1 & !_A0 | _B0 & !_A0 & !_A1; }
 
 boolean xor_f1() { return nand(nand(_A1, nand(_B1, 1)), nand(_B1, nand(_A1, 1))); }
 boolean xor_f0() { return nand(nand(_A0, nand(_B0, 1)), nand(_B0, nand(_A0, 1))); }
