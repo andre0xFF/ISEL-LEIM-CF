@@ -67,7 +67,7 @@ void calcularVariaveisCombinatorias() {
     // K = !Id0;
 
     // Estrutura associada a I
-    RI = adder(-1, QregR);
+    RI = adder(-1, QregI);
     YI = MUX_2x1(SelI, RI, Y);
     DregI = YI;
     Id0 = (QregR != 0 ? 1 : 0);
@@ -84,11 +84,12 @@ void MCLK() {
     if (nowMCLK - agoMCLK > DEBOUNCETIME) {
         // Actualizar o flip flop (D) do estado do modulo de controlo
         Q = D;
-
+        //atualizar o flip flop (J-K) do estado do modulo de controlo
+        //A =Q & !K | !Q &J;
         if (Q == 0) {
             X = random(16);
             Y = random(16);
-            // print X,
+            // print X e Y,
         }
 
         attachInterrupt(digitalPinToInterrupt(2), MCLKneg, FALLING);
@@ -105,7 +106,7 @@ void MCLKneg() {
         if(EnI) QregI = DregI;
         if(EnR) QregR = DregR;
 
-        // print Q, I, R
+        Serial.println("Q = " + Q + ", I = " + I, ", R = " + R);
 
     }
 }
@@ -150,6 +151,8 @@ void setup() {
 
     // print X, Y
     // print estado Q
+    Serial.println("X = " + X + ", Y = " + Y);
+    Serial.print("Q = " + Q); 
 }
 
 void loop() {
