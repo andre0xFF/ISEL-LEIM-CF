@@ -59,7 +59,7 @@ void calcularVariaveisCombinatorias() {
     // Modulo de controlo
     // "Modulo funcional"
     SelI = !Q;
-    EnI = !O | Id0;
+    EnI = !Q | Id0;
     SelR = SelI;
     EnR = EnI;
     D = !Q | Id0;
@@ -152,7 +152,7 @@ void setup() {
     // print X, Y
     // print estado Q
     Serial.println("X = " + X + ", Y = " + Y);
-    Serial.print("Q = " + Q); 
+    Serial.print("Q = " + Q);
 }
 
 void loop() {
