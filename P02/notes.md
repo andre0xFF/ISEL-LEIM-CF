@@ -78,14 +78,14 @@ void calcularVariaveisCombinatorias() {
     DregR = YR;
 }
 
-
+// Funcao que corre quando o clock sobe
 void MCLK() {
     nowMCLK = millis();
     if (nowMCLK - agoMCLK > DEBOUNCETIME) {
         // Actualizar o flip flop (D) do estado do modulo de controlo
         Q = D;
-        //atualizar o flip flop (J-K) do estado do modulo de controlo
-        //A =Q & !K | !Q &J;
+        // Atualizar o flip flop (J-K) do estado do modulo de controlo
+        // Q = Q & !K | !Q & J;
         if (Q == 0) {
             X = random(16);
             Y = random(16);
@@ -99,6 +99,7 @@ void MCLK() {
     agoMCLK = nowMCLK;
 }
 
+// Funcao que corre quando o clock desce
 void MCLKneg() {
     nowMCLK = millis();
 
@@ -106,9 +107,16 @@ void MCLKneg() {
         if(EnI) QregI = DregI;
         if(EnR) QregR = DregR;
 
-        Serial.println("Q = " + Q + ", I = " + I, ", R = " + R);
+        // Prints de:
+        // Estado = Q
+        // I = QregI
+        // R = QregR
+        // QregI == 0 ? : Resultado final!
 
+        attachInterrupt(digitalPinToInterrupt(2), MCLK, RISING);
     }
+
+    agoMCLKneg = nowMCLKneg;
 }
 
 void mostrarSinais() {
