@@ -67,8 +67,8 @@ void calcularVariaveisCombinatorias() {
     // K = !Id0;
 
     // Estrutura associada a I
-    RI = adder(-1, QregI);
-    YI = MUX_2x1(SelI, RI, Y);
+    byte RI = adder(-1, QregI);
+    byte YI = MUX_2x1(SelI, RI, Y);
     DregI = YI;
     Id0 = (QregR != 0 ? 1 : 0);
 
@@ -103,7 +103,7 @@ void MCLK() {
 void MCLKneg() {
     nowMCLK = millis();
 
-    if (nowMCLK - agoMCLK > DEBOUNCETIME) {
+    if (nowMCLKneg - agoMCLKneg > DEBOUNCETIME) {
         if(EnI) QregI = DregI;
         if(EnR) QregR = DregR;
 
