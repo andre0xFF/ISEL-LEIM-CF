@@ -5,13 +5,17 @@ byte divisor;
 byte dividend;
 
 // Output variables
-volatile byte quotient;
-volatile byte remainder;
+byte quotient;
+byte remainder;
 
 // Flip flop JK
 volatile boolean Q;
 boolean enabler;
 boolean selector;
+
+// Modules
+volatile byte I_Q;
+volatile byte R_Q;
 
 // Clock
 boolean mclock;
@@ -64,8 +68,7 @@ void functional_module(byte D, byte d, boolean S, boolean E, boolean CLK) {
     byte I_D = I_Y;
 
     if (I_enable && !I_clock) {
-        byte I_Q = register_memory(I_D, I_enable, I_clock);
-        remainder = I_Q;
+        I_Q = register_memory(I_D, I_enable, I_clock);
     }
 
     byte R_R = add(1, quotient);
@@ -73,17 +76,14 @@ void functional_module(byte D, byte d, boolean S, boolean E, boolean CLK) {
     byte R_D = R_Y;
 
     if (R_enable && !R_clock) {
-        byte R_Q = register_memory(R_D, R_enable, R_clock);
-        quotient = R_Q;
+        R_Q = register_memory(R_D, R_enable, R_clock);
     }
 }
 
-// TODO: Review and debug this module
 boolean flip_flop_JK(boolean J, boolean K, boolean clk) {
     return Q & !K | !Q & J;
 }
 
-// TODO: Review and debug this module
 void control_module(boolean condition, boolean clk) {
     if (!condition || !clk) {
         return;
@@ -128,6 +128,11 @@ void MCLK_negative() {
     unsigned long current_time = millis();
 
     if (current_time - time_negative > DEBOUNCE_DELAY) {
+        if (enabler) {
+            remainder = I_Q;
+            quotient = R_Q;
+        }
+
         mclock = false;
         boolean condition = remainder - divisor >= 0;
         control_module(condition, mclock);
