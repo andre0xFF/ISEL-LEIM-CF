@@ -10,11 +10,11 @@ volatile byte remainder;
 
 // Flip flop JK
 volatile boolean Q;
-
 boolean enabler;
 boolean selector;
-boolean mclock;
 
+// Clock
+boolean mclock;
 unsigned long time_positive;
 unsigned long time_negative;
 
@@ -59,11 +59,11 @@ void functional_module(byte D, byte d, boolean S, boolean E, boolean CLK) {
     boolean I_clock = CLK;
     boolean R_clock = CLK;
 
-    byte I_R = subtract(d, remainder);
+    byte I_R = subtract(remainder, d);
     byte I_Y = MUX_2x1(I_selector, D, I_R);
     byte I_D = I_Y;
 
-    if (I_enable && I_clock) {
+    if (I_enable && !I_clock) {
         byte I_Q = register_memory(I_D, I_enable, I_clock);
         remainder = I_Q;
     }
@@ -72,32 +72,32 @@ void functional_module(byte D, byte d, boolean S, boolean E, boolean CLK) {
     byte R_Y = MUX_2x1(R_selector, 0, R_R);
     byte R_D = R_Y;
 
-    if (R_enable && R_clock) {
+    if (R_enable && !R_clock) {
         byte R_Q = register_memory(R_D, R_enable, R_clock);
         quotient = R_Q;
     }
 }
 
 // TODO: Review and debug this module
-boolean flip_flop_JK(boolean J, boolean K, boolean CLK) {
+boolean flip_flop_JK(boolean J, boolean K, boolean clk) {
     return Q & !K | !Q & J;
 }
 
 // TODO: Review and debug this module
-void control_module(boolean condition, boolean CLK) {
-    if (!condition || !mclock) {
+void control_module(boolean condition, boolean clk) {
+    if (!condition || !clk) {
         return;
     }
-
-    boolean J = 1;
-    boolean K = !condition;
-
-    Q = flip_flop_JK(J, K, CLK);
 
     // left side of the condition
     selector = !Q;
     // left or right side of the condition
     enabler = !Q | condition;
+
+    boolean J = true;
+    boolean K = !condition;
+
+    Q = flip_flop_JK(J, K, clk);
 }
 
 // TODO: Review and debug this module
@@ -151,8 +151,8 @@ byte add(byte A, byte B) {
 byte MUX_2x1(boolean selector, byte input_0, byte input_1) {
     switch(selector) {
         case 0:
-            return input_0;
-        case 1:
             return input_1;
+        case 1:
+            return input_0;
     }
 }
