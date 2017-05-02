@@ -85,7 +85,7 @@ boolean flip_flop_JK(boolean J, boolean K, boolean clk) {
 }
 
 void control_module(boolean condition, boolean clk) {
-    if (!condition || !clk) {
+    if (!clk) {
         return;
     }
 
@@ -109,7 +109,7 @@ void MCLK_positive() {
 
     if (current_time - time_positive > DEBOUNCE_DELAY) {
         mclock = true;
-        boolean condition = remainder - divisor >= 0;
+        boolean condition = remainder >= divisor;
         control_module(condition, mclock);
 
         if (!Q) {
@@ -134,7 +134,7 @@ void MCLK_negative() {
         }
 
         mclock = false;
-        boolean condition = remainder - divisor >= 0;
+        boolean condition = remainder >= divisor;
         control_module(condition, mclock);
         attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
     }
