@@ -39,18 +39,23 @@ void setup() {
 
 void initialize() {
     randomSeed(analogRead(A0));
-    // dividend = random(16);
-    dividend = 10;
-    // divisor = random(16);
-    divisor = 3;
+    dividend = random(16);
+    divisor = random(16);
 
     quotient = 0;
-    remainder = 10;
+    remainder = dividend;
+    ready = false;
+
+    Serial.print("\n > ");
+    Serial.print(dividend);
+    Serial.print(" % ");
+    Serial.print(divisor);
+    Serial.println();
 }
 
 void loop() {
-    control_module();
     functional_module();
+    control_module();
 }
 
 byte MUX_2x1(boolean S, byte A, byte B) {
@@ -69,8 +74,13 @@ byte add(byte A, byte B) {
     return A + B;
 }
 
+boolean NOR(boolean A, boolean B) {
+    return !A | !B;
+}
+
 void functional_module() {
     I = remainder >= divisor;
+    div_zero = NOR(divisor != 0, true);
 
     I_R = subtract(remainder, divisor);
     I_D = MUX_2x1(selector, dividend, I_R);
@@ -91,7 +101,7 @@ void control_module() {
 
     boolean J = true;
     boolean K = !I;
-    Q = flip_flop_JK(J, K);
+    Q = flip_flop_JK(J, K) & !div_zero;
 }
 
 void MCLK_positive() {
@@ -99,10 +109,10 @@ void MCLK_positive() {
 
     if (current_time - time_positive >= DEBOUNCE_DELAY) {
 
-
+        control_module();
         if (!Q) {
             initialize();
-          	print_results("P >");
+          	print_results("");
         }
 
         attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
@@ -119,10 +129,10 @@ void MCLK_negative() {
         if (enabler) {
             remainder = I_Q;
             quotient = R_Q;
-          	ready = !Q;
-          	print_results("N >");
         }
 
+        ready = !(remainder >= divisor);
+        print_results("");
 
         attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
     }
@@ -131,7 +141,7 @@ void MCLK_negative() {
 }
 
 void print_results(String extra) {
-    Serial.println(extra);
+    Serial.print(extra);
     Serial.print(" E ");
     Serial.print(enabler);
     Serial.print(" Q ");
