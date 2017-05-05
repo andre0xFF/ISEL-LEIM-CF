@@ -38,20 +38,20 @@ void setup() {
 
 void initialize() {
     randomSeed(analogRead(A0));
-    dividend = 4;
-    divisor = 15;
+    dividend = random(16);
+    divisor = random(16);
 
     quotient = 0;
     remainder = dividend;
 
     ready = false;
-    enabler = false;
-    selector = false;
-    Q = false;
-    J = false;
-    K = false;
-    I = false;
-    DZ = false;
+  	enabler = false;
+  	selector = false;
+  	Q = false;
+  	J = false;
+  	K = false;
+  	I = false;
+  	DZ = false;
 
     Serial.print("\n > ");
     Serial.print(dividend);
@@ -100,16 +100,16 @@ boolean flip_flop_JK(boolean J, boolean K) {
 }
 
 void control_module() {
+  	J = !Q & !DZ & I;
+  	K = Q & !I;
+  	enabler = !Q & DZ | !Q & !I & !DZ | Q & I;
+  	selector = !Q & DZ | !Q & !I & !DZ;
+
+  	Q = flip_flop_JK(J, K);
+
     I = remainder >= divisor;
     DZ = divisor == 0;
     ready = !I | DZ;
-
-    J = !Q & !DZ & I;
-    K = Q & !I;
-    enabler = !Q & DZ | !Q & !I & !DZ | Q & I;
-    selector = !Q & DZ | !Q & !I & !DZ;
-
-    Q = flip_flop_JK(J, K);
 }
 
 void MCLK_positive() {
