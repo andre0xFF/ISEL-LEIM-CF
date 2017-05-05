@@ -32,7 +32,7 @@ boolean DZ;
 void setup() {
     Serial.begin(9600);
 
-    attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
+    attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
     // enables interrupts
     interrupts();
     initialize();
@@ -46,7 +46,15 @@ void initialize() {
 
     quotient = 0;
     remainder = dividend;
+
     ready = false;
+  	enabler = false;
+  	selector = false;
+  	Q = false;
+  	J = false;
+  	K = false;
+  	I = false;
+  	DZ = false;
 
     Serial.print("\n > ");
     Serial.print(dividend);
@@ -56,8 +64,8 @@ void initialize() {
 }
 
 void loop() {
-    functional_module();
     control_module();
+    functional_module();
 }
 
 byte MUX_2x1(boolean S, byte A, byte B) {
@@ -97,11 +105,14 @@ boolean flip_flop_JK(boolean J, boolean K) {
 void control_module() {
   	I = remainder >= divisor;
     DZ = divisor == 0;
+    ready = !I | DZ;
 
-  	J = !DZ;
+  	J = !Q & !DZ;
   	K = !I;
   	enabler = !Q | I;
   	selector = !Q;
+  
+  	Q = flip_flop_JK(J, K);
 }
 
 void MCLK_positive() {
@@ -113,7 +124,7 @@ void MCLK_positive() {
 
         if (!Q) {
             initialize();
-          	//print_results("P: ");
+          	print_results("");
         }
 
         attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
@@ -132,8 +143,8 @@ void MCLK_negative() {
             quotient = R_Q;
         }
 
-        ready = !(remainder >= divisor);
-        print_results("N: ");
+        control_module();
+        print_results("");
 
         attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
     }
@@ -149,24 +160,9 @@ void print_results(String extra) {
     Serial.print(quotient);
     Serial.print(" R ");
     Serial.print(remainder);
-  	Serial.print(" DZ ");
-  	Serial.print(DZ);
-  	Serial.print(" RDY ");
-  	Serial.print(ready);
+    Serial.print(" DZ ");
+    Serial.print(DZ);
+    Serial.print(" RDY ");
+    Serial.print(ready);
     Serial.println();
-
-  	Serial.print(Q);
-  	Serial.print(" ");
-  	Serial.print(selector);
-  	Serial.print(" ");
-  	Serial.print(enabler);
-  	Serial.print(" ");
-  	Serial.print(I);
-  	Serial.print(" ");
-  	Serial.print(DZ);
-  	Serial.print(" ");
-  	Serial.print(divisor);
-  	Serial.print(" ");
-  	Serial.print(remainder);
-  	Serial.println();
 }
