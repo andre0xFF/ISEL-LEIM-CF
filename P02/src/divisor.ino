@@ -32,29 +32,26 @@ boolean DZ;
 void setup() {
     Serial.begin(9600);
 
-    attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
-    // enables interrupts
+    attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
     interrupts();
-    initialize();
-    print_results("");
 }
 
 void initialize() {
     randomSeed(analogRead(A0));
-    dividend = random(16);
-    divisor = random(16);
+    dividend = 4;
+    divisor = 15;
 
     quotient = 0;
     remainder = dividend;
 
     ready = false;
-  	enabler = false;
-  	selector = false;
-  	Q = false;
-  	J = false;
-  	K = false;
-  	I = false;
-  	DZ = false;
+    enabler = false;
+    selector = false;
+    Q = false;
+    J = false;
+    K = false;
+    I = false;
+    DZ = false;
 
     Serial.print("\n > ");
     Serial.print(dividend);
@@ -103,28 +100,25 @@ boolean flip_flop_JK(boolean J, boolean K) {
 }
 
 void control_module() {
-  	I = remainder >= divisor;
+    I = remainder >= divisor;
     DZ = divisor == 0;
     ready = !I | DZ;
 
-  	J = !Q & !DZ;
-  	K = !I;
-  	enabler = !Q | I;
-  	selector = !Q;
-  
-  	Q = flip_flop_JK(J, K);
+    J = !Q & !DZ & I;
+    K = Q & !I;
+    enabler = !Q & DZ | !Q & !I & !DZ | Q & I;
+    selector = !Q & DZ | !Q & !I & !DZ;
+
+    Q = flip_flop_JK(J, K);
 }
 
 void MCLK_positive() {
     unsigned long current_time = millis();
 
     if (current_time - time_positive >= DEBOUNCE_DELAY) {
-
-        Q = flip_flop_JK(J, K);
-
         if (!Q) {
             initialize();
-          	print_results("");
+            print_results("");
         }
 
         attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
