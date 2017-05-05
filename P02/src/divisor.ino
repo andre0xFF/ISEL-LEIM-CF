@@ -63,6 +63,10 @@ void initialize() {
 void loop() {
     control_module();
     functional_module();
+
+    if (Serial.available()) {
+        read_input();
+    }
 }
 
 byte MUX_2x1(boolean S, byte A, byte B) {
@@ -158,5 +162,71 @@ void print_results(String extra) {
     Serial.print(DZ);
     Serial.print(" RDY ");
     Serial.print(ready);
+    Serial.println();
+}
+
+void read_input() {
+    switch (Serial.read()) {
+        case 'C':
+            print_control_module();
+            break;
+        case 'F':
+            print_functional_module();
+            break;
+        case 'R':
+            print_memory();
+            break;
+    }
+}
+
+void print_control_module() {
+    // Control module outputs
+    Serial.print(" > I: ");
+    Serial.print(" E ");
+    Serial.print(enabler);
+    Serial.print(" S ");
+    Serial.print(selector);
+    Serial.println();
+    Serial.print("> R: ");
+    Serial.print(" E ");
+    Serial.print(enabler);
+    Serial.print(" S ");
+    Serial.print(selector);
+    Serial.println();
+}
+
+void print_functional_module() {
+    // Functional module outputs
+    Serial.print(" > I: ");
+    Serial.print(" SUB ");
+    Serial.print(I_R);
+    Serial.print(" MUX ");
+    Serial.print(I_D);
+    Serial.print(" MEM ");
+    Serial.print(I_Q);
+    Serial.println();
+    Serial.print(" > R: ");
+    Serial.print(" SUB ");
+    Serial.print(R_R);
+    Serial.print(" MUX ");
+    Serial.print(R_D);
+    Serial.print(" MEM ");
+    Serial.print(R_Q);
+    Serial.println();
+}
+
+void print_memory() {
+    // Memory registers and flip flops
+    Serial.print(" > Reg: ");
+    Serial.print(" Q ");
+    Serial.print(Q);
+    Serial.print(" J ");
+    Serial.print(J);
+    Serial.print(" K ");
+    Serial.print(K);
+    Serial.print(" I_Q ");
+    Serial.print(I_Q);
+    Serial.print(" I_R ");
+    Serial.print(I_R);
     Serial.println();
 }
