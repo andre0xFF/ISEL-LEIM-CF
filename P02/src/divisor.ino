@@ -1,13 +1,13 @@
 #define DEBOUNCE_DELAY 200
 
 // Input variables
-byte divisor;
-byte dividend;
+unsigned int divisor;
+unsigned int dividend;
 
 // Output variables
-volatile byte quotient;
-volatile byte remainder;
-byte ready;
+volatile unsigned int quotient;
+volatile unsigned int remainder;
+unsigned int ready;
 
 // Flip flop JK
 volatile boolean Q;
@@ -20,12 +20,12 @@ boolean selector;
 unsigned long time_positive;
 unsigned long time_negative;
 
-byte I_D;
-byte I_Q;
-byte I_R;
-byte R_D;
-byte R_Q;
-byte R_R;
+unsigned int I_D;
+unsigned int I_Q;
+unsigned int I_R;
+unsigned int R_D;
+unsigned int R_Q;
+unsigned int R_R;
 boolean I;
 boolean DZ;
 
@@ -69,19 +69,19 @@ void loop() {
     }
 }
 
-byte MUX_2x1(boolean S, byte A, byte B) {
+unsigned int MUX_2x1(boolean S, unsigned int A, unsigned int B) {
     return S ? A : B;
 }
 
-byte register_memory(boolean E, byte D, byte Q) {
+unsigned int register_memory(boolean E, unsigned int D, unsigned int Q) {
     return E ? D : Q;
 }
 
-byte subtract(byte A, byte B) {
+unsigned int subtract(unsigned int A, unsigned int B) {
     return A - B;
 }
 
-byte add(byte A, byte B) {
+unsigned int add(unsigned int A, unsigned int B) {
     return A + B;
 }
 
@@ -109,8 +109,6 @@ void control_module() {
   	enabler = !Q & DZ | !Q & !I & !DZ | Q & I;
   	selector = !Q & DZ | !Q & !I & !DZ;
 
-  	Q = flip_flop_JK(J, K);
-
     I = remainder >= divisor;
     DZ = divisor == 0;
     ready = !I | DZ;
@@ -120,6 +118,8 @@ void MCLK_positive() {
     unsigned long current_time = millis();
 
     if (current_time - time_positive >= DEBOUNCE_DELAY) {
+      	Q = flip_flop_JK(J, K);
+
         if (!Q) {
             initialize();
             print_results("");
