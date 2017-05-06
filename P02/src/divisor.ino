@@ -1,13 +1,13 @@
 #define DEBOUNCE_DELAY 200
 
 // Input variables
-byte divisor;
-byte dividend;
+unsigned int divisor;
+unsigned int dividend;
 
 // Output variables
-volatile byte quotient;
-volatile byte remainder;
-byte ready;
+volatile unsigned int quotient;
+volatile unsigned int remainder;
+unsigned int ready;
 
 // Flip flop JK
 volatile boolean Q;
@@ -20,23 +20,20 @@ boolean selector;
 unsigned long time_positive;
 unsigned long time_negative;
 
-byte I_D;
-byte I_Q;
-byte I_R;
-byte R_D;
-byte R_Q;
-byte R_R;
+unsigned int I_D;
+unsigned int I_Q;
+unsigned int I_R;
+unsigned int R_D;
+unsigned int R_Q;
+unsigned int R_R;
 boolean I;
 boolean DZ;
 
 void setup() {
     Serial.begin(9600);
 
-    attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
-    // enables interrupts
+    attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
     interrupts();
-    initialize();
-    print_results("");
 }
 
 void initialize() {
@@ -66,21 +63,25 @@ void initialize() {
 void loop() {
     control_module();
     functional_module();
+
+    if (Serial.available()) {
+        read_input();
+    }
 }
 
-byte MUX_2x1(boolean S, byte A, byte B) {
+unsigned int MUX_2x1(boolean S, unsigned int A, unsigned int B) {
     return S ? A : B;
 }
 
-byte register_memory(boolean E, byte D, byte Q) {
+unsigned int register_memory(boolean E, unsigned int D, unsigned int Q) {
     return E ? D : Q;
 }
 
-byte subtract(byte A, byte B) {
+unsigned int subtract(unsigned int A, unsigned int B) {
     return A - B;
 }
 
-byte add(byte A, byte B) {
+unsigned int add(unsigned int A, unsigned int B) {
     return A + B;
 }
 
@@ -103,28 +104,25 @@ boolean flip_flop_JK(boolean J, boolean K) {
 }
 
 void control_module() {
-  	I = remainder >= divisor;
+  	J = !Q & !DZ & I;
+  	K = Q & !I;
+  	enabler = !Q & DZ | !Q & !I & !DZ | Q & I;
+  	selector = !Q & DZ | !Q & !I & !DZ;
+
+    I = remainder >= divisor;
     DZ = divisor == 0;
     ready = !I | DZ;
-
-  	J = !Q & !DZ;
-  	K = !I;
-  	enabler = !Q | I;
-  	selector = !Q;
-  
-  	Q = flip_flop_JK(J, K);
 }
 
 void MCLK_positive() {
     unsigned long current_time = millis();
 
     if (current_time - time_positive >= DEBOUNCE_DELAY) {
-
-        Q = flip_flop_JK(J, K);
+      	Q = flip_flop_JK(J, K);
 
         if (!Q) {
             initialize();
-          	print_results("");
+            print_results("");
         }
 
         attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
@@ -164,5 +162,71 @@ void print_results(String extra) {
     Serial.print(DZ);
     Serial.print(" RDY ");
     Serial.print(ready);
+    Serial.println();
+}
+
+void read_input() {
+    switch (Serial.read()) {
+        case 'C':
+            print_control_module();
+            break;
+        case 'F':
+            print_functional_module();
+            break;
+        case 'R':
+            print_memory();
+            break;
+    }
+}
+
+void print_control_module() {
+    // Control module outputs
+    Serial.print(" > I: ");
+    Serial.print(" E ");
+    Serial.print(enabler);
+    Serial.print(" S ");
+    Serial.print(selector);
+    Serial.println();
+    Serial.print("> R: ");
+    Serial.print(" E ");
+    Serial.print(enabler);
+    Serial.print(" S ");
+    Serial.print(selector);
+    Serial.println();
+}
+
+void print_functional_module() {
+    // Functional module outputs
+    Serial.print(" > I: ");
+    Serial.print(" SUB ");
+    Serial.print(I_R);
+    Serial.print(" MUX ");
+    Serial.print(I_D);
+    Serial.print(" MEM ");
+    Serial.print(I_Q);
+    Serial.println();
+    Serial.print(" > R: ");
+    Serial.print(" SUB ");
+    Serial.print(R_R);
+    Serial.print(" MUX ");
+    Serial.print(R_D);
+    Serial.print(" MEM ");
+    Serial.print(R_Q);
+    Serial.println();
+}
+
+void print_memory() {
+    // Memory registers and flip flops
+    Serial.print(" > Reg: ");
+    Serial.print(" Q ");
+    Serial.print(Q);
+    Serial.print(" J ");
+    Serial.print(J);
+    Serial.print(" K ");
+    Serial.print(K);
+    Serial.print(" I_Q ");
+    Serial.print(I_Q);
+    Serial.print(" I_R ");
+    Serial.print(I_R);
     Serial.println();
 }
