@@ -1,4 +1,4 @@
-```c
+
 #define DIM_MEM_CODIGO 32
 #define DIM_MEM_DADOS 80
 #define DIM_EPROM 32
@@ -7,28 +7,38 @@
 unsigned long now0, ago0;
 unsigned long now1, ago1;
 
+//Entradas dos registos do CPU(D)
 byte DregA;
 byte DregR[4];
 byte DregPC;
 
+//Saidas dos registos do CPU
 volatile byte QregA;
 volatile byte QregR[4];
 volatile byte QregPC;
 
-(...)
+//Flags
+boolean DflagCy;
+boolean DflagZero;
 
+//memoria de dados
 byte memDados[DIM_MEM_DADOS];
+
+//memoria de codigo
 byte memCodigo[DIM_MEM_CODIGO];
+
+//EPROM do modulo de controlo
 word modControlo[DIM_EPROM];
 
+//Sinais do modulo de controlo
 boolean EnF;
 boolean WR;
 boolean RD, EnA, MA1, MA0, JMP, JNZ, JNC, EnRn;
 
-// particular
+// Enables dos registos
 boolean EnR[4];
 
-// provenientes do DB da mem codigo
+// bits provenientes do DB da mem codigo
 // D5 e D4: bits do parametro Rn
 // D0: para distinguir adicao e subtracao
 boolean D5, D4, D0;
@@ -36,9 +46,9 @@ boolean D5, D4, D0;
 // selector do MUX que fornece Y1
 boolean PC_0;
 
-// saidas de cada modulo do modulo funcional
+// saidas de cada modulo do modulo funcional (saidas de MUXs e da ALU)
 byte Y1, Y2, Y3, Y4, Y5;
-byte IN_1_Y1;
+byte IN_1_Y1; //Entrada 1 do modulo que dá Y1
 
 // funcoes com cada modulo do mod funcional
 MUX_2x1(...)
@@ -49,14 +59,14 @@ MUX_4x1(...) {
     }
 }
 
-DMUX_4x1(...) {
+DMUX_1x4(...) {
     return E << (S1 << 1 | S0)
 }
 
 byte AU(boolean Sel, byte A, byte B, boolean Cin) {
     if (Sel) {
         DflagZ = ((byte)) (A - B - Cin) == 0) ? 1 : 0);
-        DflagY = ((int)) (A - B - Cin) < 0) ? 1 : 0);
+        DflagY = ((int)) (A - B - Cin) > 255) ? 1 : 0);
         return A - B - Cin;
     }
     (...)
@@ -64,10 +74,11 @@ byte AU(boolean Sel, byte A, byte B, boolean Cin) {
 
 void mod_funcional() {
     byte demuxOutput;
-
+    
+    //Compor os bits de entrada do moduilo de controlo a partir dos bits de dados da memoria de codigo
     int inputMC = 0;
 
-    // deixar passar os bits D7 e D6
+    // //Mascarar para deixar passar os bits D7 E D6
     inputMC = memCodigo[QregPC] & OxC0;
     inputMC >>= 3;
 
@@ -92,7 +103,7 @@ void mod_funcional() {
     EnRn = bitRead(modControlo[inputMC], 0);
 
     // bits que determinam Rn1 e Rn0
-    D5 = bitRead(memCodigo[QregPC], 4);
+    D5 = bitRead(memCodigo[QregPC], 5);
     D4 = bitRead(memCodigo[QregPC], 4);
 
     // bits que selecciona a operacao da AU
@@ -112,7 +123,7 @@ void mod_funcional() {
     else {
         // extensao de sinal para numero positivo
         IN_1_Y1 &= 0x3F;
-    }
+    
 
     // parte esquerda do modulo funcional
     Y1 = MUX_2x1(PC_0, 0x01, IN_1_Y1);
@@ -145,9 +156,98 @@ void mod_funcional() {
 }
 
 void showSignals() {
-
+      Serial.println();
+  Serial.println("Sinais provenientes do modulo de controlo e outros auxiliares ");
+  Serial.println("--------------------------");
+  Serial.print(" EnF ="); Serial.print(EnF)
+  WR..RD..EnA..A1(//MA1)..A0..JMP..JNC..JNZ
+  displayMenu();
+}
+void showInstructions(int instruction){
+  boolean validinstruction1 = true; boolean validinstruction2 = true;
+  switch(instriction)
 }
 
+void MCLK(){
+  now0 = millis();
+  if(now0 - ago0 >DEBOUNCETIME){
+    //atualizar o PC
+    QregPC = DregPC;
+
+    //Mostrar a instrucao a cumprir no proximo ciclo
+    if(QregPC < 0x10)
+    Serial.print("0x0");
+    else
+      Serial.print("0x");
+    Serial.print(QregPC, HEX)
+  
+} 
+
+ void MCLKneg(){
+  now1 = millis();
+  if(now1 - ago1 >DEBOUNCETIME){
+    if(EnA) QregA = DregA;
+    if(EnR[0]) QregR[0] = DregR[0];
+    if(EnR[0]) QregR[0] = DregR[0];
+    if(EnR[0]) QregR[0] = DregR[0];
+    if(EnR[0]) QregR[0] = DregR[0];
+
+    if(EnF){
+      Qflagz = DflagZ;
+      QflagCy = QflagCy;
+      
+    }
+  }
+ }
+
+void preencherEPROM(){
+  for(int i = 0x00; i <= 0x07; i++){
+    modControlo[i] = 0x188;
+  }
+  for(int i = 0x08; i <= 0x0F; i++){
+    modControlo[i] = 0x184;
+  }
+}
+
+boid preencherPrograma1(){
+  byte X = memDados[0x10];
+  byte Y = memDados[0x11];
+  byte R = X + Y;
+
+  QregR[0] = 0x10;
+  QregR[1] = 0x11;
+  QregR[2] = 0x12;
+
+  memCodigo[0x00] = 0xc0;
+}
+
+void preencheDados(){
+  memDados[0x10] = 0x05;
+  memDados[0x11] = 0x06;
+  memDados[0x12] = 0xAA;
+}
+
+
+
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(2, INPUT_PULLUP);
+  randomizeMemories(), //Preencher o conteudo das memorias com valores random
+  preencheEPROM(),
+  preencheDados();
+  preenchePrograma3();
+  displayMenu();
+  startExecuting();
+  //funcoes interrupt realizam a actualizacao dos registos e flags do CPU
+  attachInterrupt(digitalPinToInterrupt(2), MCLK, FALLING);
+  interrupts();
+  
+}
+
+void loop() {
+  calcularFuncoesCombinatorias();
+  LerRespostaUtilizador();
 ```
 
 
