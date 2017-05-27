@@ -1,4 +1,4 @@
-
+```c
 #define DIM_MEM_CODIGO 32
 #define DIM_MEM_DADOS 80
 #define DIM_EPROM 32
@@ -35,7 +35,7 @@ boolean EnF;
 boolean WR;
 boolean RD, EnA, MA1, MA0, JMP, JNZ, JNC, EnRn;
 
-// Enables dos registos
+// Enables dos registos, partilar a esta arch
 boolean EnR[4];
 
 // bits provenientes do DB da mem codigo
@@ -74,11 +74,11 @@ byte AU(boolean Sel, byte A, byte B, boolean Cin) {
 
 void mod_funcional() {
     byte demuxOutput;
-    
+
     //Compor os bits de entrada do moduilo de controlo a partir dos bits de dados da memoria de codigo
     int inputMC = 0;
 
-    // //Mascarar para deixar passar os bits D7 E D6
+    //Mascarar para deixar passar os bits D7 E D6
     inputMC = memCodigo[QregPC] & OxC0;
     inputMC >>= 3;
 
@@ -123,7 +123,7 @@ void mod_funcional() {
     else {
         // extensao de sinal para numero positivo
         IN_1_Y1 &= 0x3F;
-    
+
 
     // parte esquerda do modulo funcional
     Y1 = MUX_2x1(PC_0, 0x01, IN_1_Y1);
@@ -176,26 +176,26 @@ void MCLK(){
 
     //Mostrar a instrucao a cumprir no proximo ciclo
     if(QregPC < 0x10)
-    Serial.print("0x0");
+        Serial.print("0x0");
     else
       Serial.print("0x");
     Serial.print(QregPC, HEX)
-  
-} 
+
+}
 
  void MCLKneg(){
   now1 = millis();
   if(now1 - ago1 >DEBOUNCETIME){
     if(EnA) QregA = DregA;
     if(EnR[0]) QregR[0] = DregR[0];
-    if(EnR[0]) QregR[0] = DregR[0];
-    if(EnR[0]) QregR[0] = DregR[0];
-    if(EnR[0]) QregR[0] = DregR[0];
+    if(EnR[1]) QregR[1] = DregR[1];
+    if(EnR[2]) QregR[2] = DregR[2];
+    if(EnR[3]) QregR[3] = DregR[3];
 
     if(EnF){
       Qflagz = DflagZ;
       QflagCy = QflagCy;
-      
+
     }
   }
  }
@@ -207,6 +207,7 @@ void preencherEPROM(){
   for(int i = 0x08; i <= 0x0F; i++){
     modControlo[i] = 0x184;
   }
+  (...)
 }
 
 boid preencherPrograma1(){
@@ -219,21 +220,39 @@ boid preencherPrograma1(){
   QregR[2] = 0x12;
 
   memCodigo[0x00] = 0xc0;
+  (...)
+  // este codigo deve estar nos slides
+  // implementar as funcoes MOV A, ... com funcao e nao assim(?)
 }
 
 void preencheDados(){
   memDados[0x10] = 0x05;
   memDados[0x11] = 0x06;
   memDados[0x12] = 0xAA;
+  (...)
 }
 
+void displayMenu() {
+    (...)
+    r: show registers
+    c: show code memory
+    d: show show data memory
+    e: eprom
+    s: signals
+    o: saida dos modulos combinatorios: Y..
+    (...)
+}
 
-
+void showeprom() {
+    (...)
+    address -- data
+}
 
 void setup() {
   Serial.begin(115200);
   pinMode(2, INPUT_PULLUP);
-  randomizeMemories(), //Preencher o conteudo das memorias com valores random
+  // Preencher o conteudo das memorias com valores random
+  randomizeMemories();
   preencheEPROM(),
   preencheDados();
   preenchePrograma3();
@@ -242,7 +261,7 @@ void setup() {
   //funcoes interrupt realizam a actualizacao dos registos e flags do CPU
   attachInterrupt(digitalPinToInterrupt(2), MCLK, FALLING);
   interrupts();
-  
+
 }
 
 void loop() {
@@ -255,3 +274,24 @@ Mem Codigo, Mem dados, EPROM do mod controlo - array
 
 32 mem codigo
 80 mem dados
+
+```text
+X = 5, Y = 6
+R = X + Y
+R = 11
+
+Instrucao a cumprir:
+
+0x00: MOV  A , @R0
+0x01: MOV  R3, A
+0x02: MOV  A , @R1
+0x03: ADDC A , R3
+0x04: MOV @R2, A
+(...)
+0x07: JMP 0
+0x07: JMP 0
+0x07: JMP 0
+0x07: JMP 0
+
+* apresenta sempre a proxima insctrucao do ciclo
+```
