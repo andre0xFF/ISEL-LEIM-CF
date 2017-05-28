@@ -75,10 +75,10 @@ byte AU(boolean Sel, byte A, byte B, boolean Cin) {
 void mod_funcional() {
     byte demuxOutput;
 
-    //Compor os bits de entrada do moduilo de controlo a partir dos bits de dados da memoria de codigo
+    // Compor os bits de entrada do modulo de controlo a partir dos bits de dados da memoria de codigo
     int inputMC = 0;
 
-    //Mascarar para deixar passar os bits D7 E D6
+    // Mascarar para deixar passar os bits D7 E D6
     inputMC = memCodigo[QregPC] & OxC0;
     inputMC >>= 3;
 
