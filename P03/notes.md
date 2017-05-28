@@ -35,7 +35,7 @@ boolean EnF;
 boolean WR;
 boolean RD, EnA, MA1, MA0, JMP, JNZ, JNC, EnRn;
 
-// Enables dos registos, partilar a esta arch
+// Enables dos registos, particular a esta arch
 boolean EnR[4];
 
 // bits provenientes do DB da mem codigo
@@ -210,7 +210,7 @@ void preencherEPROM(){
   (...)
 }
 
-boid preencherPrograma1(){
+void preencherPrograma1(){
   byte X = memDados[0x10];
   byte Y = memDados[0x11];
   byte R = X + Y;
@@ -219,7 +219,7 @@ boid preencherPrograma1(){
   QregR[1] = 0x11;
   QregR[2] = 0x12;
 
-  memCodigo[0x00] = 0xc0;
+  memCodigo[0x00] = 0xC0;
   (...)
   // este codigo deve estar nos slides
   // implementar as funcoes MOV A, ... com funcao e nao assim(?)
@@ -293,5 +293,5 @@ Instrucao a cumprir:
 0x07: JMP 0
 0x07: JMP 0
 
-* apresenta sempre a proxima insctrucao do ciclo
+* apresenta sempre a proxima instrucao do ciclo
 ```
