@@ -103,8 +103,8 @@ public class CPU implements Runnable {
     final int CODE_MEMORY_SIZE = 256;
     int code_memory[] = new int[CODE_MEMORY_SIZE];
 
-    // Data memory: Arbitrary value (at the current moment)
-    final int DATA_MEMORY_SIZE = 128;
+    // Data memory: Max bit in Address Bus is 9 so 2^9 = 512
+    final int DATA_MEMORY_SIZE = 512;
     int data_memory[] = new int[DATA_MEMORY_SIZE];
 
     // Clock
