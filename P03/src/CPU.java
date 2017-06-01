@@ -239,7 +239,7 @@ public class CPU implements Runnable {
         return result;
     }
 
-    boolean x_module(boolean jc, boolean c, boolean z, boolean jz) {
+    boolean x_module(boolean jc, boolean c, boolean jz, boolean z) {
         return jc & c | jz & z;
     }
 
@@ -273,7 +273,6 @@ public class CPU implements Runnable {
 
         // A, B, P registers
         // Mask bits D7, D6, D5, D4, D3, D2, D1, D0
-        // TODO note sure about data_memory[]
         a_mux_y0 = MUX_4x1(pc3_enable, pc2_enable, 0, code_memory_db & 0x0FF, data_memory_db, alu_r);
         a_reg_d0 = a_mux_y0;
         b_reg_d0 = a_reg_q0;
@@ -283,7 +282,7 @@ public class CPU implements Runnable {
         alu_r = alu((code_memory_db & 0x01) == 1 ? true : false, a_reg_q0, b_reg_q0, alu_c);
 
         // X module
-        pc0_enable = x_module(jump_carry, flag_carry, flag_zero, jump_zero);
+        pc0_enable = x_module(jump_carry, flag_carry, jump_zero, flag_zero);
     }
 
     void control_module() {
@@ -307,18 +306,17 @@ public class CPU implements Runnable {
         int data = eprom[input_address];
 
         // Read individual bits of data
-        int n = 11;
-        a_enable = read_bit(data, --n);
-        b_enable = read_bit(data, --n);
-        f_enable = read_bit(data, --n);
-        p_enable = read_bit(data, --n);
-        pc1_enable = read_bit(data, --n);
-        pc2_enable = read_bit(data, --n);
-        pc3_enable = read_bit(data, --n);
-        write = read_bit(data, --n);
-        read = read_bit(data, --n);
-        jump_carry = read_bit(data, --n);
-        jump_zero = read_bit(data, --n);
+        a_enable = read_bit(data, 10);
+        b_enable = read_bit(data, 9);
+        f_enable = read_bit(data, 8);
+        p_enable = read_bit(data, 7);
+        pc1_enable = read_bit(data, 6);
+        pc2_enable = read_bit(data, 5);
+        pc3_enable = read_bit(data, 4);
+        write = read_bit(data, 3);
+        read = read_bit(data, 2);
+        jump_carry = read_bit(data, 1);
+        jump_zero = read_bit(data, 0);
     }
 
     boolean read_bit(int bits, int n) {
