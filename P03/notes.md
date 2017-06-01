@@ -123,7 +123,7 @@ void mod_funcional() {
     else {
         // extensao de sinal para numero positivo
         IN_1_Y1 &= 0x3F;
-
+    }
 
     // parte esquerda do modulo funcional
     Y1 = MUX_2x1(PC_0, 0x01, IN_1_Y1);
