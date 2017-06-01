@@ -1,9 +1,11 @@
 // EPROM: There are a total of 0x3F addresses so the
 // proper size is 2^4 = 64
 #define EPROM_SIZE 64
+
 // Code memory: The JUMP instruction can have a max jump of
 // 0 1111 1111 = 0x0FF = 255 so the proper size is 2^8 = 256
 #define CODE_MEMORY_SIZE 256
+
 // Data memory: Max bit in Address Bus is 9 so 2^9 = 512
 #define DATA_MEMORY_SIZE 512
 
@@ -29,13 +31,13 @@ byte a_mux_y0;
 byte a_reg_d0;
 byte a_reg_q0;
 byte b_reg_d0;
-byte b_reg_q0;
+volatile byte b_reg_q0;
 byte p_reg_d0;
-byte p_reg_q0;
+volatile byte p_reg_q0;
 byte z_reg_d0;
 byte z_reg_q0;
 byte cy_reg_d0;
-byte cy_reg_q0;
+volatile byte cy_reg_q0;
 
 // Control module
 boolean a_enable;
@@ -51,13 +53,14 @@ boolean read;
 boolean jump_carry;
 boolean jump_zero;
 
-byte eprom[EPROM_SIZE];
+// Blocks
+word eprom[EPROM_SIZE];
 
-byte code_memory[CODE_MEMORY_SIZE];
-byte data_memory_db;
+word code_memory[CODE_MEMORY_SIZE];
+word code_memory_db;
 
 byte data_memory[DATA_MEMORY_SIZE];
-byte code_memory_db;
+byte data_memory_db;
 
 // Clock
 long time_pos;
@@ -72,7 +75,9 @@ void setup() {
 
 void initialize() {
     fill_eprom();
+    fill_data_memory();
     code_memory_test();
+    print_instruction();
 }
 
 void loop() {
@@ -80,8 +85,117 @@ void loop() {
     control_module();
 
     if (Serial.available()) {
-        // read_input();
+        read_input();
     }
+}
+
+void read_input() {
+    switch (Serial.read()) {
+        case 'C':
+            return print_control_module();
+        case 'F':
+            return print_functional_module();
+        case 'M':
+            return print_memory();
+    }
+}
+
+void print_control_module() {
+    Serial.print(" > C: ");
+    Serial.print(" EnA ");
+    Serial.print(a_enable, HEX);
+    Serial.print(" EnB ");
+    Serial.print(b_enable, HEX);
+    Serial.print(" EnF ");
+    Serial.print(f_enable, HEX);
+    Serial.print(" EnP ");
+    Serial.print(p_enable, HEX);
+    Serial.print(" PC1 ");
+    Serial.print(pc1_enable, HEX);
+    Serial.print(" PC2 ");
+    Serial.print(pc2_enable, HEX);
+    Serial.print(" PC3 ");
+    Serial.print(pc3_enable, HEX);
+    Serial.print(" /WR ");
+    Serial.print(write, HEX);
+    Serial.print(" /RD ");
+    Serial.print(read, HEX);
+    Serial.print(" JC ");
+    Serial.print(jump_carry, HEX);
+    Serial.print(" JZ ");
+    Serial.print(jump_zero, HEX);
+    Serial.println();
+}
+
+void print_functional_module() {
+
+}
+
+void print_memory() {
+    Serial.print(" > Reg: ");
+    Serial.print(" PC_Q ");
+    Serial.print(pc_reg_q0, HEX);
+    Serial.print(" A_Q ");
+    Serial.print(a_reg_q0, HEX);
+    Serial.print(" B_Q ");
+    Serial.print(b_reg_q0, HEX);
+    Serial.print(" P_Q ");
+    Serial.print(p_reg_q0, HEX);
+    Serial.print(" Cy_Q ");
+    Serial.print(flag_carry, HEX);
+    Serial.print(" Z_Q ");
+    Serial.print(flag_zero, HEX);
+    Serial.println();
+}
+
+void print_instruction() {
+    word instruction = code_memory[pc_reg_q0];
+
+    Serial.print("0x0");
+    Serial.print(pc_reg_q0);
+    Serial.print(": ");
+
+    boolean D8 = read_bit(instruction, 8);
+    boolean D7 = read_bit(instruction, 7);
+    boolean D6 = read_bit(instruction, 6);
+    boolean D5 = read_bit(instruction, 5);
+    boolean D1 = read_bit(instruction, 1);
+    boolean D0 = read_bit(instruction, 0);
+
+    if (D8) {
+        Serial.print("MOV A, #CONST");
+    }
+    else if (D7) {
+        Serial.print("JMP end7");
+    }
+    // else if (D6 & D5 & D1) {
+    //     Serial.print("MOV P, A");
+    // }
+    // else if (D6 & D5 & D0) {
+    //     Serial.print("MOV @P, A");
+    // }
+    // else if (D6 & D5) {
+    //     Serial.print("MOV A, @P");
+    // }
+    // else if (D6) {
+    //     Serial.print("JZ rel5");
+    // }
+    // else if (D5) {
+    //     Serial.print("JC rel5");
+    // }
+    // else if (D1) {
+    //     Serial.print("SUBB A, B");
+    // }
+    // else if (D0) {
+    //     Serial.print("ADDC A, B");
+    // }
+    // else {
+    //     Serial.print("MOV B, A");
+    // }
+
+    Serial.print(" > ");
+    Serial.print(instruction, BIN);
+    Serial.println();
 }
 
 /** * * * * * * * * * * * * * * * * * * * * * * * *
@@ -112,7 +226,6 @@ byte add(byte A, byte B) {
 }
 
 byte sub(byte A, byte B) {
-    // TODO remove cast
     return A - B;
 }
 
@@ -122,8 +235,7 @@ byte register_memory(boolean E, byte D, byte Q) {
 
 // Arithmetic and Logic Unit
 byte alu(boolean Sel, byte X, byte Y, byte carry_in) {
-    // TODO remove (= 0)
-    byte result = 0;
+    byte result;
 
     if (Sel) {
         byte aux = add(X, Y);
@@ -181,7 +293,7 @@ void functional_module() {
     p_reg_d0 = a_reg_q0;
 
     // ALU
-    alu_r = alu((code_memory_db & 0x01) == 1 ? true : false, a_reg_q0, b_reg_q0, alu_c);
+    alu_r = alu((code_memory_db & 0x01) == 1, a_reg_q0, b_reg_q0, alu_c);
 
     // X module
     pc0_enable = x_module(jump_carry, flag_carry, jump_zero, flag_zero);
@@ -203,6 +315,12 @@ void control_module() {
             input_address & 0x002 |
             input_address & 0x001
     );
+
+    // input_address = (
+    //         input_address & 0x1E0 >> 3 |
+    //         input_address & 0x002 |
+    //         input_address & 0x001
+    // );
 
     // Read the data at the eprom input address
     int data = eprom[input_address];
@@ -226,7 +344,7 @@ boolean read_bit(byte bits, byte n) {
     bits = bits >> n;
     // Filter the last bit of the right
     bits = bits & 0x01;
-    return bits == 0x01 ? true : false;
+    return bits == 0x01;
 }
 
 void fill_eprom() {
@@ -242,9 +360,15 @@ void fill_eprom() {
     fill(eprom, 0x20, 0x3F, 0x41C); // MOV A, #CONST
 }
 
-void fill(byte array[], byte from, byte to, byte value) {
+void fill(word array[], word from, word to, word value) {
     for (int i = from; i <= to; i++) {
         array[i] = value;
+    }
+}
+
+void fill_data_memory() {
+    for (int i = 0x00; i < DATA_MEMORY_SIZE; i++) {
+        data_memory[i] = random(0x00, 0x0FF);
     }
 }
 
@@ -263,9 +387,7 @@ void MCLK_positive() {
         pc_reg_q0 = pc_reg_d0;
     }
 
-    Serial.print("0x0");
-    Serial.print(pc_reg_q0, HEX);
-    Serial.println();
+    print_instruction();
 
     attachInterrupt(digitalPinToInterrupt(2), MCLK_negative, FALLING);
     time_pos = time;
@@ -282,8 +404,8 @@ void MCLK_negative() {
     b_reg_q0 = register_memory(b_enable, a_reg_q0, b_reg_q0);
     p_reg_q0 = register_memory(p_enable, a_reg_q0, p_reg_q0);
 
-    z_reg_q0 = register_memory(f_enable, flag_zero ? 1 : 0, z_reg_q0);
-    cy_reg_q0 = register_memory(f_enable, flag_carry ? 1 : 0, cy_reg_q0);
+    z_reg_q0 = register_memory(f_enable, flag_zero, z_reg_q0);
+    cy_reg_q0 = register_memory(f_enable, flag_carry, cy_reg_q0);
 
     attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
     time_neg = time;
@@ -302,18 +424,22 @@ void code_memory_test() {
     // rel5             = - --00 0101 = 0x005 = 005
     // end7             = - -000 1001 = 0x009 = 009
 
+    // end7             = - -000 1000 = 0x008 = 008
+
     // Instructions codification with parameters values:
     // MOV A, #CONST    > 1 1110 1011 = 0x1EB
     // JC rel5          > 0 0010 0101 = 0x025
     // JZ rel5          > 0 0100 0101 = 0x045
     // JMP end7         > 0 1000 1001 = 0x089
 
+    // JMP end7         > 0 1000 1000 = 0x088
+
     // The last instruction is a JMP to the same address: HALT
 
     // Instructions:
     code_memory[0x00] = 0x1EB; // MOV A, #CONST
-    code_memory[0x01] = 0x060; // MOV A, @P
-    code_memory[0x02] = 0x061; // MOV @P, A
+    code_memory[0x01] = 0x061; // MOV @P, A
+    code_memory[0x02] = 0x060; // MOV A, @P
     code_memory[0x03] = 0x062; // MOV P, A
     code_memory[0x04] = 0x000; // MOV B, A
     code_memory[0x05] = 0x001; // ADDC A, B
@@ -321,13 +447,7 @@ void code_memory_test() {
     code_memory[0x07] = 0x025; // JC rel5
     code_memory[0x08] = 0x045; // JZ rel5
     code_memory[0x09] = 0x089; // JMP end7
-}
-
-void program1() {
-//        code_memory[0x00] = ;
-//        code_memory[0x01] = ;
-//        code_memory[0x02] = ;
-//        code_memory[0x03] = ;
-//        code_memory[0x04] = ;
-//        code_memory[0x05] = 0x05;
+    // Jumps to go back
+    code_memory[0x12] = 0x088; // JMP end7
+    code_memory[0x13] = 0x089; // JMP end7
 }
