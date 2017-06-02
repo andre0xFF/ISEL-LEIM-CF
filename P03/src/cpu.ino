@@ -74,7 +74,7 @@ void setup() {
 void initialize() {
     fill_eprom();
     fill_data_memory();
-    code_memory_test();
+    program_3();
     print_instruction();
     read = true;
     write = true;
@@ -133,17 +133,17 @@ void print_functional_module() {
 
 void print_memory() {
     Serial.print(" > Reg: ");
-    Serial.print(" PC_Q ");
+    Serial.print(" PC_Q 0x");
     Serial.print(pc_reg_q0, HEX);
-    Serial.print(" A_Q ");
+    Serial.print(" A_Q 0x");
     Serial.print(a_reg_q0, HEX);
-    Serial.print(" B_Q ");
+    Serial.print(" B_Q 0x");
     Serial.print(b_reg_q0, HEX);
-    Serial.print(" P_Q ");
+    Serial.print(" P_Q 0x");
     Serial.print(p_reg_q0, HEX);
-    Serial.print(" Cy_Q ");
+    Serial.print(" Cy_Q 0x");
     Serial.print(cy_reg_q0, HEX);
-    Serial.print(" Z_Q ");
+    Serial.print(" Z_Q 0x");
     Serial.print(z_reg_q0, HEX);
     Serial.println();
 }
@@ -287,7 +287,13 @@ void functional_module() {
 
     // Program counter
     // Mask bits D4, D3, D2, D1, D0
-    pc_mux_y0 = MUX_2x1(pc0_enable, 1, code_memory_db & 0x01F);
+    byte x = code_memory_db & 0x01F;
+
+    if (read_bit(x, 4)) {
+        x |= 0x0E0;
+    }
+
+    pc_mux_y0 = MUX_2x1(pc0_enable, 1, x);
     pc_add_y0 = add(pc_mux_y0, pc_reg_q0);
     pc_mux_y1 = MUX_2x1(pc1_enable, pc_add_y0, code_memory_db & 0x07F);
     pc_reg_d0 = pc_mux_y1;
@@ -487,6 +493,9 @@ void program_2() {
 
 void program_3() {
     // MOV A, 10    = 1 0000 1010 = 0x10A
+    // MOV B, A
+    // SUBB A, B
+    // JZ 0x05      = 0 0100 0101 = 0x045
     // JMP 0x08     = 0 1000 1000 = 0x088
     code_memory[0x00] = 0x10A;
     code_memory[0x01] = 0x000;
@@ -497,8 +506,12 @@ void program_3() {
 
 void program_4() {
     // MOV A, 245   = 1 1111 0101 = 0x1F5
+    // MOV B, A
+    // MOV A, 245   = 1 1111 0101 = 0x1F5
+    // ADDC A, B
+    // JC 0x05      = 0 0010 0101 = 0x025
     // JMP 0x09     = 0 1000 1001 = 0x089
-    code_memory[0x00] = 0x10A;
+    code_memory[0x00] = 0x1F5;
     code_memory[0x01] = 0x000;
     code_memory[0x02] = 0x1F5;
     code_memory[0x03] = 0x001;
