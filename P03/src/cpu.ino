@@ -20,10 +20,10 @@ byte alu_z;
 
 // Program counter
 byte pc_mux_y0;
-byte pc_add_y0;
-byte pc_mux_y1;
-byte pc_reg_d0;
-volatile byte pc_reg_q0;
+word pc_add_y0;
+word pc_mux_y1;
+word pc_reg_d0;
+volatile word pc_reg_q0;
 boolean pc0_enable;
 
 // Registers
@@ -78,6 +78,8 @@ void initialize() {
     fill_data_memory();
     code_memory_test();
     print_instruction();
+    read = true;
+    write = true;
 }
 
 void loop() {
@@ -153,7 +155,7 @@ void print_instruction() {
 
     Serial.print("0x0");
     Serial.print(pc_reg_q0);
-    Serial.print(": ");
+    Serial.print(" ");
 
     boolean D8 = read_bit(instruction, 8);
     boolean D7 = read_bit(instruction, 7);
@@ -165,36 +167,39 @@ void print_instruction() {
     if (D8) {
         Serial.print("MOV A, #CONST");
     }
-    else if (D7) {
+    if (!D8 & D7) {
         Serial.print("JMP end7");
     }
-    // else if (D6 & D5 & D1) {
-    //     Serial.print("MOV P, A");
-    // }
-    // else if (D6 & D5 & D0) {
-    //     Serial.print("MOV @P, A");
-    // }
-    // else if (D6 & D5) {
-    //     Serial.print("MOV A, @P");
-    // }
-    // else if (D6) {
-    //     Serial.print("JZ rel5");
-    // }
-    // else if (D5) {
-    //     Serial.print("JC rel5");
-    // }
-    // else if (D1) {
-    //     Serial.print("SUBB A, B");
-    // }
-    // else if (D0) {
-    //     Serial.print("ADDC A, B");
-    // }
-    // else {
-    //     Serial.print("MOV B, A");
-    // }
+    if (!D8 & !D7 & D6 & D5 & D1 & !D0) {
+        Serial.print("MOV P, A");
+    }
+    if (!D8 & !D7 & D6 & D5 & !D1 & D0) {
+        Serial.print("MOV @P, A");
+    }
+    if (!D8 & !D7 & D6 & D5 & !D1 & !D0) {
+        Serial.print("MOV A, @P");
+    }
+    if (!D8 & !D7 & D6 & !D5) {
+        Serial.print("JZ rel5");
+    }
+    if (!D8 & !D7 & !D6 & D5) {
+        Serial.print("JC rel5");
+    }
+    if (!D8 & !D7 & !D6 & !D5 & D1) {
+        Serial.print("SUBB A, B");
+    }
+    if (!D8 & !D7 & !D6 & !D5 & !D1 & D0) {
+        Serial.print("ADDC A, B");
+    }
+    if (!D0 & !D1 & !D5 & !D6 & !D7 & !D8) {
+        Serial.print("MOV B, A");
+    }
 
     Serial.print(" > ");
     Serial.print(instruction, BIN);
+    Serial.print(" = ");
+    Serial.print("0x0");
+    Serial.print(instruction, HEX);
     Serial.println();
 }
 
@@ -257,13 +262,14 @@ boolean x_module(boolean jc, boolean c, boolean jz, boolean z) {
     return jc & c | jz & z;
 }
 
-void code_memory_block(byte address_bus) {
+void code_memory_block(word address_bus) {
     code_memory_db = code_memory[address_bus];
 }
 
 void data_memory_block(byte address_bus, boolean output_enable, boolean write_enable) {
     if (!write_enable) {
         data_memory_db = a_reg_q0;
+        data_memory[address_bus] = a_reg_q0;
     }
 
     if (!output_enable) {
@@ -282,7 +288,7 @@ void functional_module() {
     // Mask bits D4, D3, D2, D1, D0
     pc_mux_y0 = MUX_2x1(pc0_enable, 1, code_memory_db & 0x01F);
     pc_add_y0 = add(pc_mux_y0, pc_reg_q0);
-    pc_mux_y1 = MUX_2x1(pc1_enable, pc_add_y0, code_memory_db);
+    pc_mux_y1 = MUX_2x1(pc1_enable, pc_add_y0, code_memory_db & 0x07F);
     pc_reg_d0 = pc_mux_y1;
 
     // A, B, P registers
@@ -339,7 +345,7 @@ void control_module() {
     jump_zero = read_bit(data, 0);
 }
 
-boolean read_bit(byte bits, byte n) {
+boolean read_bit(word bits, byte n) {
     // Shift n positions to the right
     bits = bits >> n;
     // Filter the last bit of the right
@@ -448,6 +454,6 @@ void code_memory_test() {
     code_memory[0x08] = 0x045; // JZ rel5
     code_memory[0x09] = 0x089; // JMP end7
     // Jumps to go back
-    code_memory[0x12] = 0x088; // JMP end7
-    code_memory[0x13] = 0x089; // JMP end7
+    code_memory[0x0C] = 0x088; // JMP end7
+    code_memory[0x0D] = 0x089; // JMP end7
 }
