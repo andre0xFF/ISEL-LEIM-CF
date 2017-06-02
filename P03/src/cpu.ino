@@ -12,8 +12,6 @@
 #define DEBOUNCE_TIME 200
 
 // Arithemtic unit
-boolean flag_carry;
-boolean flag_zero;
 byte alu_r;
 byte alu_c;
 byte alu_z;
@@ -144,13 +142,16 @@ void print_memory() {
     Serial.print(" P_Q ");
     Serial.print(p_reg_q0, HEX);
     Serial.print(" Cy_Q ");
-    Serial.print(flag_carry, HEX);
+    Serial.print(cy_reg_q0, HEX);
     Serial.print(" Z_Q ");
-    Serial.print(flag_zero, HEX);
+    Serial.print(z_reg_q0, HEX);
     Serial.println();
 }
 
 void print_instruction() {
+    print_memory();
+    print_control_module();
+
     word instruction = code_memory[pc_reg_q0];
 
     Serial.print("0x0");
@@ -245,14 +246,14 @@ byte alu(boolean Sel, byte X, byte Y, byte carry_in) {
     if (Sel) {
         byte aux = add(X, Y);
         result = add(aux, carry_in);
-        flag_zero = (byte) (X - Y - carry_in) == 0;
-        flag_carry = (int) (X - Y - carry_in) > 255;
+        alu_z = (byte) (X + Y + carry_in) == 0;
+        alu_c = (int) (X + Y + carry_in) > 255;
     }
     else {
         byte aux = sub(X, Y);
         result = sub(aux, carry_in);
-        flag_zero = (byte) (X + Y + carry_in) == 0;
-        flag_carry = (int) (X + Y + carry_in) > 255;
+        alu_z = (byte) (X - Y - carry_in) == 0;
+        alu_c = (int) (X - Y - carry_in) > 255;
     }
 
     return result;
@@ -294,15 +295,18 @@ void functional_module() {
     // A, B, P registers
     // Mask bits D7, D6, D5, D4, D3, D2, D1, D0
     a_mux_y0 = MUX_4x1(pc3_enable, pc2_enable, 0, code_memory_db & 0x0FF, data_memory_db, alu_r);
+
     a_reg_d0 = a_mux_y0;
     b_reg_d0 = a_reg_q0;
     p_reg_d0 = a_reg_q0;
+    z_reg_d0 = alu_z;
+    cy_reg_d0 = alu_c;
 
     // ALU
     alu_r = alu((code_memory_db & 0x01) == 1, a_reg_q0, b_reg_q0, alu_c);
 
     // X module
-    pc0_enable = x_module(jump_carry, flag_carry, jump_zero, flag_zero);
+    pc0_enable = x_module(jump_carry, cy_reg_q0, jump_zero, z_reg_q0);
 }
 
 void control_module() {
@@ -409,9 +413,8 @@ void MCLK_negative() {
     a_reg_q0 = register_memory(a_enable, a_mux_y0, a_reg_q0);
     b_reg_q0 = register_memory(b_enable, a_reg_q0, b_reg_q0);
     p_reg_q0 = register_memory(p_enable, a_reg_q0, p_reg_q0);
-
-    z_reg_q0 = register_memory(f_enable, flag_zero, z_reg_q0);
-    cy_reg_q0 = register_memory(f_enable, flag_carry, cy_reg_q0);
+    z_reg_q0 = register_memory(f_enable, z_reg_d0, z_reg_q0);
+    cy_reg_q0 = register_memory(f_enable, cy_reg_d0, cy_reg_q0);
 
     attachInterrupt(digitalPinToInterrupt(2), MCLK_positive, RISING);
     time_neg = time;
@@ -456,4 +459,49 @@ void code_memory_test() {
     // Jumps to go back
     code_memory[0x0C] = 0x088; // JMP end7
     code_memory[0x0D] = 0x089; // JMP end7
+}
+
+void program_1() {
+    // MOV A, 10    = 1 0000 1010 = 0x10A
+    // MOV @P, A
+    // MOV A, 0     = 1 0000 0000 = 0x100
+    // MOV A, @P
+    // JMP 0x04     = 0 1000 0100 = 0x084
+    code_memory[0x00] = 0x10A;
+    code_memory[0x01] = 0x061;
+    code_memory[0x02] = 0x100;
+    code_memory[0x03] = 0x060;
+    code_memory[0x04] = 0x084;
+}
+
+void program_2() {
+    // MOV A, 10    = 1 0000 1010 = 0x10A
+    // MOV P, A
+    // MOV B, A
+    // JMP 0x03     = 0 1000 0011 = 0x083
+    code_memory[0x00] = 0x10A;
+    code_memory[0x01] = 0x062;
+    code_memory[0x02] = 0x000;
+    code_memory[0x03] = 0x083;
+}
+
+void program_3() {
+    // MOV A, 10    = 1 0000 1010 = 0x10A
+    // JMP 0x08     = 0 1000 1000 = 0x088
+    code_memory[0x00] = 0x10A;
+    code_memory[0x01] = 0x000;
+    code_memory[0x02] = 0x002;
+    code_memory[0x03] = 0x045;
+    code_memory[0x08] = 0x088;
+}
+
+void program_4() {
+    // MOV A, 245   = 1 1111 0101 = 0x1F5
+    // JMP 0x09     = 0 1000 1001 = 0x089
+    code_memory[0x00] = 0x10A;
+    code_memory[0x01] = 0x000;
+    code_memory[0x02] = 0x1F5;
+    code_memory[0x03] = 0x001;
+    code_memory[0x04] = 0x025;
+    code_memory[0x09] = 0x089;
 }
