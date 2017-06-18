@@ -39,7 +39,7 @@ void button_state_machine() {
         return;
     }
 
-    if (button == STATE_BUTTON_CLICKED || button==STATE_WAITING && !button_status) {
+    if (button == STATE_WAITING && !button_status || button == STATE_BUTTON_CLICKED && !button_status) {
         button = STATE_WAITING;
         on_button_waiting();
         return;
