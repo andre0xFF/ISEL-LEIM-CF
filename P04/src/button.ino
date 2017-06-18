@@ -4,6 +4,7 @@
 #define PIN_BUTTON 7
 
 int button = STATE_WAITING;
+long button_timer;
 
 void setup() {
     Serial.begin(9600);
@@ -18,9 +19,9 @@ void loop() {
     STATE MACHINES
 */
 void button_state_machine() {
-    button_status = digitalRead(PIN_BUTTON);
+    boolean status = digitalRead(PIN_BUTTON);
 
-    if (button == STATE_WAITING && button_status) {
+    if (button == STATE_WAITING && status) {
         button_timer = millis();
         button = STATE_BUTTON_CHECKING;
         on_button_checking();
@@ -29,14 +30,14 @@ void button_state_machine() {
 
     long timer = millis() - button_timer;
 
-    if (button == STATE_BUTTON_CHECKING && timer > 20) {
+    if (button == STATE_BUTTON_CHECKING && timer > 20 && status) {
         button = STATE_BUTTON_CLICKED;
         on_button_clicked();
         return;
     }
 
-    if (button == STATE_BUTTON_CLICKED) {
-        button = WAITING;
+    if (button == STATE_BUTTON_CLICKED && !status) {
+        button = STATE_WAITING;
         on_button_waiting();
         return;
     }
@@ -46,13 +47,13 @@ void button_state_machine() {
     STATE MACHINES EVENTS
 */
 void on_button_waiting() {
-    Serial.print("Just waiting for something to happen..");
+    Serial.println("Just waiting for something to happen..");
 }
 
 void on_button_clicked() {
-    Serial.print("I have been clicked!");
+    Serial.println("I have been clicked!");
 }
 
 void on_button_checking() {
-    Serial.print("Checking the thing");
+    Serial.println("Checking the thing");
 }

@@ -121,7 +121,7 @@ void display_print_char(char data) {
 }
 
 void display_print_string(String data) {
-    for (int i = 0; i = data.length(); i++) {
+    for (int i = 0; i < data.length(); i++) {
         display_print_char(data[i]);
     }
 }
