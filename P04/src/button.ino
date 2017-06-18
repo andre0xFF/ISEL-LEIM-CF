@@ -19,9 +19,12 @@ void loop() {
     STATE MACHINES
 */
 void button_state_machine() {
-    boolean status = digitalRead(PIN_BUTTON);
+    boolean button_status = digitalRead(PIN_BUTTON);
+    Serial.println(button);
+    Serial.println(button_status);
+    
 
-    if (button == STATE_WAITING && status) {
+    if (button == STATE_WAITING && button_status) {
         button_timer = millis();
         button = STATE_BUTTON_CHECKING;
         on_button_checking();
@@ -30,13 +33,13 @@ void button_state_machine() {
 
     long timer = millis() - button_timer;
 
-    if (button == STATE_BUTTON_CHECKING && timer > 20 && status) {
+    if (button == STATE_BUTTON_CHECKING && timer > 20 && button_status) {
         button = STATE_BUTTON_CLICKED;
         on_button_clicked();
         return;
     }
 
-    if (button == STATE_BUTTON_CLICKED && !status) {
+    if (button == STATE_BUTTON_CLICKED || button==STATE_WAITING && !button_status) {
         button = STATE_WAITING;
         on_button_waiting();
         return;
