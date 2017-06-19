@@ -2,6 +2,8 @@
 #define STATE_BUTTON_CLICKED 1
 #define PIN_BUTTON 7
 
+#define BUTTON_PRESSING_INTERVAL 20
+
 int button = STATE_WAITING;
 long button_timer;
 boolean button_status;
@@ -26,7 +28,7 @@ void button_state_machine() {
         on_button_waiting();
         long timer = millis() - button_timer;
 
-        if (!button_status_previous && button_status && timer > 20) {
+        if (!button_status_previous && button_status && timer > BUTTON_PRESSING_INTERVAL) {
             button = STATE_BUTTON_CLICKED;
         }
         return;
