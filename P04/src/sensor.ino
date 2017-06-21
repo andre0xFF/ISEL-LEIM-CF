@@ -53,15 +53,6 @@ void setup() {
 void loop() {
     sensor_state_machine();
     button_state_machine();
-    read_input();
-}
-
-void read_input() {
-    if (Serial.available()) {
-        if (Serial.read() == ":1:") {
-            button = STATE_BUTTON_CLICKED;
-        }
-    }
 }
 
 /*
@@ -128,7 +119,7 @@ void on_echo_lost() {
     object_time[1] = -1;
     object_distance[0] = -1;
     object_distance[0] = -1;
-    // Serial.println("Echo lost.");
+    Serial.println("Echo lost.");
 }
 
 void sensor_process() {
@@ -149,10 +140,8 @@ void sensor_process() {
         return;
     }
 
-    float delta_distance = object_distance[1] - object_distance[0];
-    float delta_time = object_time[1] - object_time[0];
-    delta_distance = abs(delta_distance);
-    delta_time = abs(delta_time);
+    float delta_distance = fabs(object_distance[1] - object_distance[0]);
+    float delta_time = abs(object_time[1] - object_time[0]);
 
     object_velocity = delta_distance / delta_time;
     object_velocity *= pow(10, 4);
@@ -182,7 +171,7 @@ void button_state_machine() {
         return;
     }
 
-    if (button == STATE_BUTTON_CLICKED) {
+    if (button = STATE_BUTTON_CLICKED) {
         on_button_clicked();
 
         if (true) {
@@ -197,8 +186,7 @@ void on_button_waiting() {
 }
 
 void on_button_clicked() {
-    display_print_string(object_velocity);
-    Serial.println(object_velocity);
+    display_print_string("Speed (m/s):" + String(object_velocity));
 }
 
 /*
@@ -210,7 +198,7 @@ void display_write_data_4(byte data) {
     Wire.endTransmission();
 
     Wire.beginTransmission(LCD_ADDRESS);
-    Wire.write((data << 4) | LIGHT | RS | EN);
+    Wire.write((data << 4) | LIGHT | RS | EN );
     Wire.endTransmission();
 
     delayMicroseconds(1); // enable ativo >450ns
