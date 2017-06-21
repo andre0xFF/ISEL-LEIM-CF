@@ -34,7 +34,7 @@ void button_state_machine() {
         return;
     }
 
-    if (button = STATE_BUTTON_CLICKED) {
+    if (button == STATE_BUTTON_CLICKED) {
         on_button_clicked();
 
         if (true) {
@@ -44,17 +44,10 @@ void button_state_machine() {
     }
 }
 
-/**
-    STATE MACHINES EVENTS
-*/
 void on_button_waiting() {
     Serial.println("Just waiting for something to happen..");
 }
 
 void on_button_clicked() {
     Serial.println("I have been clicked!");
-}
-
-void on_button_checking() {
-    Serial.println("Checking the thing");
 }
