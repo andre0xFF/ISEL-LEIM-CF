@@ -119,7 +119,7 @@ void on_echo_lost() {
     object_time[1] = -1;
     object_distance[0] = -1;
     object_distance[0] = -1;
-    Serial.println("Echo lost.");
+//    Serial.println("Echo lost.");
 }
 
 void sensor_process() {
@@ -187,6 +187,7 @@ void on_button_waiting() {
 
 void on_button_clicked() {
     display_print_string("Speed (m/s):" + String(object_velocity));
+    Serial.println("Speed (m/s):" + String(object_velocity));
 }
 
 /*
