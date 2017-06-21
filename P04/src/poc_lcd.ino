@@ -96,7 +96,7 @@ void display_print_string(String data) {
       display_clear();
       display_set_cursor(0,0);
       for (int i = 0; i < data.length(); i++) { 
-        if(i == 16){
+        if(i==16){
           display_set_cursor(1,0);
         }
           display_print_char(data[i]);
@@ -112,10 +112,14 @@ void setup() {
       Serial.begin(9600);
       display_initialize();
       display_clear();
+      display_print_string("Hello world!    Skynet lives");
+      delay(2000);
+      display_print_string("something");
 
 }
 
 void loop() {
-    display_print_string("Hello world!    Skynet lives");
+    
 
 }
+
