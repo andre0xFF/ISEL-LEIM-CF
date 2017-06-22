@@ -58,7 +58,7 @@ void loop() {
 
 void read_input() {
     if (Serial.available()) {
-        if (Serial.read() != 0) {
+        if (Serial.read() == 'R') {
             button = STATE_BUTTON_CLICKED;
         }
     }
