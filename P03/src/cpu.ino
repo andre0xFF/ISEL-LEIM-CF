@@ -285,14 +285,15 @@ void functional_module() {
     // Data memory
     data_memory_block(p_reg_q0, read, write);
 
-    // Program counter
-    // Mask bits D4, D3, D2, D1, D0
+    // Transformation for negative numbers
     byte x = code_memory_db & 0x01F;
 
     if (read_bit(x, 4)) {
         x |= 0x0E0;
     }
 
+    // Program counter
+    // Mask bits D4, D3, D2, D1, D0
     pc_mux_y0 = MUX_2x1(pc0_enable, 1, x);
     pc_add_y0 = add(pc_mux_y0, pc_reg_q0);
     pc_mux_y1 = MUX_2x1(pc1_enable, pc_add_y0, code_memory_db & 0x07F);
