@@ -1,310 +1,249 @@
-#include <Wire.h>
-
-// Addresses
-#define RS 0x01
-#define RW 0x02
-#define EN 0x04
-#define LIGHT 0x08
-#define LCD_ADDRESS 0x3F
-
-// Pins
-#define PIN_BUTTON 7
-
-// States
-#define STATE_WAITING 0
-#define STATE_GENERATE_TRIGGER 1
-#define STATE_CALCULATE_DISTANCE 2
-#define STATE_BUTTON_CLICKED 1
-
-int sensor = STATE_GENERATE_TRIGGER;
-int button = STATE_WAITING;
-
-// Properties
-#define PIN_SENSOR_ECHO 2
-#define PIN_SENSOR_TRIGGER 4
-#define SENSOR_TRIGGER_GAP 60
-#define SENSOR_TRIGGER_DELAY 10
-#define SENSOR_ECHO_LIMIT 38
-#define BUTTON_PRESSING_INTERVAL 20
-
-unsigned long sensor_trigger_timer;
-volatile boolean sensor_echo;
-volatile unsigned long sensor_echo_initial_time;
-volatile unsigned long sensor_echo_final_time;
-
-double object_distance[] = {-1, -1};
-long object_time[] = {-1, -1};
-float object_velocity;
-
-unsigned long button_timer;
-boolean button_status;
-
-void setup() {
-    Serial.begin(9600);
-    // Sensor
-    pinMode(PIN_SENSOR_TRIGGER, OUTPUT);
-    attachInterrupt(digitalPinToInterrupt(PIN_SENSOR_ECHO), on_echo_released, RISING);
-    interrupts();
-    // LCD
-    display_initialize();
-    display_clear();
-}
-
-void loop() {
-    sensor_state_machine();
-    button_state_machine();
-    read_input();
-}
-
-void read_input() {
-     if (Serial.available()) {
-          Serial.println(Serial.read());
-         if (Serial.read() != 0) {
-             Serial.println("arduino1");
-             button = STATE_BUTTON_CLICKED;
-         }
-     }
- }
-/*
- * Sensor
- */
-void sensor_state_machine() {
-    if (sensor == STATE_GENERATE_TRIGGER) {
-        boolean trigger = generate_trigger();
-
-        if (trigger) {
-            sensor = STATE_WAITING;
-        }
-
-        return;
-    }
-
-    if (sensor == STATE_WAITING) {
-        long timer = millis() - sensor_trigger_timer;
-
-        if (timer > SENSOR_TRIGGER_GAP && !sensor_echo) {
-            on_echo_lost();
-            sensor = STATE_GENERATE_TRIGGER;
-            return;
-        }
-
-        if (sensor_echo) {
-            sensor_process();
-            sensor = STATE_GENERATE_TRIGGER;
-            return;
-        }
-    }
-}
-
-boolean generate_trigger() {
-    long trigger_delta = millis() - sensor_trigger_timer;
-
-    if (trigger_delta < SENSOR_TRIGGER_GAP) {
-        return false;
-    }
-
-    sensor_trigger_timer = millis();
-
-    digitalWrite(PIN_SENSOR_TRIGGER, HIGH);
-    delayMicroseconds(SENSOR_TRIGGER_DELAY);
-    digitalWrite(PIN_SENSOR_TRIGGER, LOW);
-
-    return true;
-}
-
-void on_echo_released() {
-    sensor_echo = false;
-    sensor_echo_initial_time = micros();
-    attachInterrupt(digitalPinToInterrupt(PIN_SENSOR_ECHO), on_echo_received, FALLING);
-}
-
-void on_echo_received() {
-    sensor_echo = true;
-    sensor_echo_final_time = micros();
-    attachInterrupt(digitalPinToInterrupt(PIN_SENSOR_ECHO), on_echo_released, RISING);
-}
-
-void on_echo_lost() {
-    object_time[0] = -1;
-    object_time[1] = -1;
-    object_distance[0] = -1;
-    object_distance[0] = -1;
-//    Serial.println("Echo lost.");
-}
-
-void sensor_process() {
-    unsigned long delta = sensor_echo_final_time - sensor_echo_initial_time;
-    float distance = delta / 58;
-
-    if (distance < 2 || distance > 400) {
-        return;
-    }
-
-    object_distance[0] = object_distance[1];
-    object_time[0] = object_time[1];
-
-    object_distance[1] = distance;
-    object_time[1] = sensor_echo_final_time;
-
-    if (object_distance[0] == -1 || object_time[0] == -1) {
-        return;
-    }
-
-    float delta_distance = fabs(object_distance[1] - object_distance[0]);
-    float delta_time = abs(object_time[1] - object_time[0]);
-
-    object_velocity = delta_distance / delta_time;
-    object_velocity *= pow(10, 4);
-
-    // if (object_velocity == 0) {
-    //     return;
-    // }
-
-    // Serial.print(object_velocity);
-    // Serial.println(" m/s");
-}
-
-/*
- * Button
- */
-void button_state_machine() {
-//    Serial.println(button);
-//  Serial.println("button_state_machine");
-    boolean button_status_previous = button_status;
-    button_status = digitalRead(PIN_BUTTON);
-//    Serial.println(button_status);
-
-    if (button == STATE_WAITING) {
-        on_button_waiting();
-        long timer = millis() - button_timer;
-
-        if (!button_status_previous && button_status && timer > BUTTON_PRESSING_INTERVAL) {
-            button = STATE_BUTTON_CLICKED;
-        }
-        return;
-    }
-    Serial.println(button);
-    if (button = STATE_BUTTON_CLICKED) {
-      Serial.println(button);
-        on_button_clicked();
-
-        if (true) {
-            button = STATE_WAITING;
-        }
-        return;
-    }
-}
-
-void on_button_waiting() {
-
-}
-
-void on_button_clicked() {
-    display_print_string("Speed (m/s):" + String(object_velocity));
-    Serial.println(String(object_velocity)+" m/s");
-}
-
-/*
- * LCD
- */
-void display_write_data_4(byte data) {
-    Wire.beginTransmission(LCD_ADDRESS);
-    Wire.write((data << 4) | LIGHT | RS);
-    Wire.endTransmission();
-
-    Wire.beginTransmission(LCD_ADDRESS);
-    Wire.write((data << 4) | LIGHT | RS | EN );
-    Wire.endTransmission();
-
-    delayMicroseconds(1); // enable ativo >450ns
-
-    Wire.beginTransmission(LCD_ADDRESS);
-    Wire.write((data << 4) | LIGHT | RS);
-    Wire.endTransmission();
-
-    delayMicroseconds(40);
-}
-
-void display_write_command_4(byte data) {
-    Wire.beginTransmission(LCD_ADDRESS);
-    Wire.write((data << 4) | LIGHT );
-    Wire.endTransmission();
-    Wire.beginTransmission(LCD_ADDRESS);
-    Wire.write((data << 4) | LIGHT | EN );
-    Wire.endTransmission();
-    delayMicroseconds(1); // enable ativo >450ns
-    Wire.beginTransmission(LCD_ADDRESS);
-    Wire.write((data << 4) | LIGHT);
-    Wire.endTransmission();
-    delayMicroseconds(40);
-}
-
-void display_write_command_8(byte data) {
-    display_write_command_4(data >> 4);
-    display_write_command_4(data);
-}
-
-void display_write_data_8(byte data) {
-    display_write_data_4(data >> 4);
-    display_write_data_4(data);
-}
-
-void display_initialize() {
-    Wire.begin();
-    delay(50);
-
-    display_write_command_4(0x03);
-    delay(5);
-    display_write_command_4(0x03);
-
-    delayMicroseconds(200);
-
-    display_write_command_4(0x03);
-    display_write_command_4(0x02);
-    display_write_command_4(0x02);
-    display_write_command_4(0x08);
-
-    delayMicroseconds(120);
-
-    display_write_command_4(0x00);
-    display_write_command_4(0x0F);
-
-    delayMicroseconds(120);
-
-    display_write_command_4(0x08);
-    display_write_command_4(0x00);
-
-    delayMicroseconds(120);
-}
-
-void display_clear() {
-    display_write_command_8(0x01);
-    delay(5);
-}
-
-void display_set_cursor(byte line, byte column) {
-    display_write_command_8(0x80 | line << 6 | column);
-}
-
-void display_print_char(char data) {
-    display_write_data_8(data);
-    delayMicroseconds(120);
-}
-
-void display_print_string(String data) {
-    display_clear();
-    display_set_cursor(0,0);
-
-    for (int i = 0; i < data.length(); i++) {
-        if(i == 16) {
-            display_set_cursor(1,0);
-        }
-
-        display_print_char(data[i]);
-    }
-}
-
-void display_print_int(int data) {
-    String s = String(data);
-    display_print_string(s);
-}
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun 21 16:39:53 2017
+
+@author: Danie
+"""
+
+import pygame
+import serial
+#import os
+
+com = 'COM1'
+baudrate = 9600
+
+antialias = True
+
+#class Background(pygame.sprite.Sprite):
+#    def __init__(self, image_file, location):
+#        pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
+#        self.image = pygame.image.load(image_file)
+#        self.rect = self.image.get_rect()
+#        self.rect.left, self.rect.top = location
+
+
+def Button(Picture, coords, surface):
+    print("buttonify")
+    image = pygame.image.load(Picture)
+    imagerect = image.get_rect()
+#    print(imagerect)
+    imagerect.center = coords
+#    print(imagerect.center)
+    surface.blit(image,imagerect)
+    return (image,imagerect)
+
+def freeText(screen,text, x, y, color, size, font):
+    print("Entrou")
+    fontType = pygame.font.SysFont(font, size)
+    textDisplay = fontType.render(text, antialias, color)
+    textpos = textDisplay.get_rect()
+    textpos.center = (x,y)
+    screen.blit(textDisplay, textpos)
+
+    # Componentes adicionais, não necessárias para o funcionamento da função apenas para ajuda na composição do jogo de modo a conhecer a posição ocupada pelo texto
+    rect_coordinates = [textpos.topleft, textpos.bottomright]
+    return rect_coordinates
+        
+def GUI():
+#    try:
+     array_GUI=[]
+     pygame.init()
+     screen = pygame.display.set_mode((1000, 750))
+     # This should show a blank 200 by 200 window centered on the screen
+    #     pygame.display.flip()
+    
+    #     background_image=pygame.image.load("sonar.png")
+     background_image=pygame.image.load("sonar1.jpg").convert_alpha() 
+     screen.fill((255,255,255)) 
+     screen.blit(background_image,(0,0))
+    #     screen
+    #     screen.fill(255)
+     
+     #window icon
+     icon = pygame.image.load("icon.png")
+     pygame.display.set_icon(icon)
+     
+     
+     
+     
+     x=Button("sonar_or_radar_screen_mini_button.png",(500,600),screen)
+#     print("coordenadas rectangulo botão")
+#     print(x[1])
+     textLabel(screen, "")
+#     freeText(screen,"",500,350,(255,255,0),50,"comicsansms")
+     
+     pygame.display.update()
+     
+     array_GUI.append(screen)
+     array_GUI.append(x[1])
+#     print(array_GUI)   
+#     print(x[1])
+#     print(array_GUI[1])
+  
+     return array_GUI #x[1]
+
+     
+#     while running:
+#         if pygame.mouse.get_pressed()[0] == True:
+#            mouse_x,mouse_y=pygame.mouse.get_pos()
+#            print(mouse_x)
+#            print(mouse_y)
+     
+def textLabel(screen, text):
+    # initialize font; must be called after 'pygame.init()' to avoid 'Font not Initialized' error
+    myfont = pygame.font.SysFont("monospace", 50)
+    
+    # render text
+    label = myfont.render(text, 1, (255,255,0))
+    screen.blit(label, (375, 300))
+
+
+
+def button_pressed(m_x, m_y, b_coords):
+#    if pygame.mouse.get_pressed()[0] == True:
+#    print("coord")
+#    print(b_coords)
+    
+    x_left=b_coords[0]
+#    print(x_left)
+    y_top=b_coords[1]
+#    print(y_top)
+    width=b_coords[2]
+    x_rigth=x_left+width
+    height=b_coords[3]
+    y_bot=y_top+height
+    
+#    mouse_x,mouse_y=pygame.mouse.get_pos()
+    
+#    print("m_x "+str(m_x))
+#    print("m_y "+str(m_y))
+#    
+#    print("x_left "+str(x_left))
+#    print("x_rigth "+str(x_rigth))
+#    print("y_bot "+str(y_bot))
+#    print("height "+str(height))
+#    
+#    if m_x > x_left and m_x < x_rigth:
+#        print("Entrou")
+#    if m_x > x_left and m_x < x_rigth:
+#        print("entrou")
+#    if m_y > y_top and m_y < y_bot:
+#        print("entrou")
+    
+    if m_x > x_left and m_x < x_rigth and m_y > y_top and m_y < y_bot:
+        
+        print("botão foi clicado")
+        return True
+#        print(mouse_x)
+#        print(mouse_y)
+    return False
+def resetLabel(screen):
+    pass
+    
+
+def main():
+    Serie=comInit(com,baudrate)
+#    print(stringReceive(Serie))
+    caracterSend(Serie,'c')
+#        pygame.init()
+#    GUI()
+    array_GUI=GUI()
+    button_coords=array_GUI[1]
+#    print("coord")
+#    print(button_coords)
+    running = True
+    
+#    while s not None:
+#        print stringReceive(Serie)
+#        c = raw_input('Introduza caracter: ')
+#        print "O caracter escolhido foi o '%c', mas podia ter sido outro\n" %c
+#        caracterSend(s, c)
+        
+    while running:
+#        if(stringReceive(Serie))
+#        print(pygame.mouse.get_pressed()[0] == True)
+#        print(stringReceive(Serie))
+        c = input('Introduza caracter: ')
+        print ("O caracter escolhido foi o '%c', mas podia ter sido outro\n" %c)
+        caracterSend(Serie,'c' )
+        if pygame.mouse.get_pressed()[0] == True:
+                mouse_x,mouse_y=pygame.mouse.get_pos()
+                if button_pressed(mouse_x, mouse_y,button_coords):
+#                    stringReceive(Serie)
+#                    print(GUI)
+#                    print(stringReceive(Serie))
+#                    reading=stringReceive(caracterSend(Serie,":1:"))
+#                    print(reading)
+#                    textLabel(array_GUI[0],stringReceive(Serie))
+#                    freeText(array_GUI[0],stringReceive(Serie),500,350,(255,255,0),50,"comicsansms")
+                    
+                    pygame.display.update()
+                    
+
+        for event in pygame.event.get():
+    
+            if event.type == pygame.QUIT:
+                print("quit")
+                running = False
+                pygame.quit()
+        
+        
+        
+            
+            
+
+    
+
+
+# Função de inicialização
+def comInit(com, baudrate):
+
+    try:
+        Serie = serial.Serial(com, baudrate)
+        print ('Sucesso na ligacao ao Arduino.')
+        print ('Ligado ao ' + Serie.portstr)
+        return Serie
+    except Exception as e:
+        print ('Insucesso na ligacao ao Arduino.')
+        print (e)
+    return None
+
+def caracterReceive(Serie):
+    try:
+        return Serie.read()
+    except:
+        print ('Erro na comunicacao.')
+    Serie.close()
+def caracterSend(Serie, info):
+    
+    print(info)
+    try:
+#        c = input('c')
+#        string_encoded=info.encode("UTF-8")
+#        print(string_encoded)
+#        c=byte(c)
+#        print(info)
+#        b=b
+        Serie.write(info)
+#        Serie.write(c)
+#        Serie.write(info)
+    except:
+        print ('Erro de comunicacao2.')
+        Serie.close()
+def stringReceive(Serie):
+    try:       
+        #decodes the byte type into string with the designated encoding
+        string_decoded=Serie.readline().decode("UTF-8")
+        
+        #selects only the value of velocity from the decoded String
+        space_index=string_decoded.index(" ");
+        value=string_decoded[:space_index]
+  
+        return value
+    except:
+        print ('Erro na comunicacao1.')
+        Serie.close()
+
+
+if __name__ == '__main__':
+    main()
