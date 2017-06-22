@@ -195,8 +195,8 @@ void on_button_waiting() {
 }
 
 void on_button_clicked() {
-    display_print_string("Speed (m/s):" + String(object_velocity));
-    Serial.println("Speed (m/s):" + String(object_velocity));
+    display_print_string("Speed (m/s):" + String(object_velocity)); 
+    Serial.println(String(object_velocity)+" m/s");
 }
 
 /*
