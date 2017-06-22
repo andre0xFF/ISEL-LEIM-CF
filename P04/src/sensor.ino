@@ -53,6 +53,15 @@ void setup() {
 void loop() {
     sensor_state_machine();
     button_state_machine();
+    read_input();
+}
+
+void read_input() {
+    if (Serial.available()) {
+        if (Serial.read() != 0) {
+            button = STATE_BUTTON_CLICKED;
+        }
+    }
 }
 
 /*
