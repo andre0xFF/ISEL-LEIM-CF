@@ -68,7 +68,7 @@ void read_input() {
  * Sensor
  */
 void sensor_state_machine() {
-    if (sensor == STATE_GENERATE_TRIGGER) {
+    if (sensor == STATE_GENERATE_TRIGGER && button == STATE_BUTTON_CLICKED) {
         boolean trigger = generate_trigger();
 
         if (trigger) {
@@ -128,7 +128,8 @@ void on_echo_lost() {
     object_time[1] = -1;
     object_distance[0] = -1;
     object_distance[0] = -1;
-//    Serial.println("Echo lost.");
+    Serial.println("Echo lost.");
+    display_print_string("echo lost");
 }
 
 void sensor_process() {
@@ -180,7 +181,7 @@ void button_state_machine() {
         return;
     }
 
-    if (button = STATE_BUTTON_CLICKED) {
+    if (button == STATE_BUTTON_CLICKED) {
         on_button_clicked();
 
         if (true) {
