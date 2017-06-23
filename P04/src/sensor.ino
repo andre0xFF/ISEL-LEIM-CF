@@ -26,6 +26,7 @@ int button = STATE_WAITING;
 #define SENSOR_TRIGGER_DELAY 10
 #define SENSOR_ECHO_LIMIT 38
 #define BUTTON_PRESSING_INTERVAL 20
+#define SERIAL_INPUT_CHAR 0x52 // character 'R'
 
 unsigned long sensor_trigger_timer;
 volatile boolean sensor_echo;
@@ -58,7 +59,7 @@ void loop() {
 
 void read_input() {
     if (Serial.available()) {
-        if (Serial.read() == 'R') {
+          if (Serial.read() == SERIAL_INPUT_CHAR) {
             button = STATE_BUTTON_CLICKED;
         }
     }
@@ -74,7 +75,6 @@ void sensor_state_machine() {
         if (trigger) {
             sensor = STATE_WAITING;
         }
-
         return;
     }
 
@@ -155,13 +155,6 @@ void sensor_process() {
 
     object_velocity = delta_distance / delta_time;
     object_velocity *= pow(10, 4);
-
-    // if (object_velocity == 0) {
-    //     return;
-    // }
-
-    // Serial.print(object_velocity);
-    // Serial.println(" m/s");
 }
 
 /*
