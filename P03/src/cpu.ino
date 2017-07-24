@@ -38,6 +38,7 @@ byte cy_reg_d0;
 volatile byte cy_reg_q0;
 
 // Control module
+boolean clr;
 boolean a_enable;
 boolean b_enable;
 boolean f_enable;
@@ -74,7 +75,7 @@ void setup() {
 void initialize() {
     fill_eprom();
     fill_data_memory();
-    program_3();
+    program_5();
     print_instruction();
     read = true;
     write = true;
@@ -306,8 +307,10 @@ void functional_module() {
     a_reg_d0 = a_mux_y0;
     b_reg_d0 = a_reg_q0;
     p_reg_d0 = a_reg_q0;
-    z_reg_d0 = alu_z;
-    cy_reg_d0 = alu_c;
+    // z_reg_d0 = alu_z;
+    // cy_reg_d0 = alu_c;
+    z_reg_d0 = alu_c & !clr;
+    cy_reg_d0 = alu_z & !clr;
 
     // ALU
     alu_r = alu((code_memory_db & 0x01) == 1, a_reg_q0, b_reg_q0, alu_c);
@@ -343,6 +346,7 @@ void control_module() {
     int data = eprom[input_address];
 
     // Read individual bits of data
+    clr = read_bit(data, 11);
     a_enable = read_bit(data, 10);
     b_enable = read_bit(data, 9);
     f_enable = read_bit(data, 8);
@@ -375,6 +379,7 @@ void fill_eprom() {
     fill(eprom, 0x0E, 0x0E, 0x08C); // MOV P, A
     fill(eprom, 0x10, 0x1F, 0x04C); // JMP end7
     fill(eprom, 0x20, 0x3F, 0x41C); // MOV A, #CONST
+    fill(eprom, 0x03, 0x03, 0x900); // CLEAR
 }
 
 void fill(word array[], word from, word to, word value) {
@@ -518,4 +523,17 @@ void program_4() {
     code_memory[0x03] = 0x001;
     code_memory[0x04] = 0x025;
     code_memory[0x09] = 0x089;
+}
+
+void program_5() {
+    // MOV A, 245   = 1 1111 0101 = 0x1F5
+    // MOV B, A
+    // MOV A, 245   = 1 1111 0101 = 0x1F5
+    // ADDC A, B
+    // CLEAR
+
+    code_memory[0x00] = 0x1F5;
+    code_memory[0x01] = 0x000;
+    code_memory[0x02] = 0x1F5;
+    code_memory[0x03] = 0x003;
 }
